@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #13ec75;
+  --color-primary-dark: #10c863;
+  --color-background-light: #f6f8f7;
+  --color-background-dark: #141e18;
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #1f2b24;
+  --color-text-main: #121614;
+  --color-text-secondary: #6a8174;
+  --color-text-main-light: #121614;
+  --color-text-main-dark: #e0e6e2;
+  --color-text-sub-light: #6a8174;
+  --color-text-sub-dark: #9ab0a3;
+  --color-danger: #e65555;
+
+  --font-display: "Lexend", sans-serif;
+
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  
+  --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+
+  /* Force dark mode class strategy if needed, but defaults are usually fine. 
+     For class-based dark mode in v4, we can rely on proper HTML structure or specific override 
+  */
+}
+
+
+@layer base {
+  body {
+    font-family: 'Lexend', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    min-height: max(884px, 100dvh);
+  }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  .icon-filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VICO</string>
+    <string name="title_activity_main">VICO</string>
+    <string name="package_name">com.vico.app</string>
+    <string name="custom_url_scheme">com.vico.app</string>
+</resources>
