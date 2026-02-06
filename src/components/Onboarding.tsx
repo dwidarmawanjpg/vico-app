@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useUserStore } from '../stores/useUserStore';
+import { Info } from 'lucide-react'; // Icon dari Lucide
+import logoVico from '../assets/logo-vico.png'; // Import logo
 
 interface OnboardingProps {
-    onStart: () => void;
+  onStart: () => void;
 }
 
 const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
@@ -16,7 +18,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
     onStart();
   };
 
-
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark font-display antialiased">
       {/* Top Half: Branding Area */}
@@ -24,13 +25,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
         {/* Background Decoration */}
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-primary/10 to-transparent dark:from-primary/5"></div>
         <div className="z-10 flex flex-col items-center gap-4">
-          {/* Logo / Icon Container */}
+          
+          {/* Logo / Icon Container - SUDAH DIPERBAIKI */}
           <div className="flex h-32 w-32 items-center justify-center rounded-full bg-white p-6 shadow-sm dark:bg-[#1a3828]">
-            <div 
-                className="aspect-square w-full bg-contain bg-center bg-no-repeat" 
-                style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCE0i_JqjiBWjimYsbRlw2gF84_7qeA76UxEJjI6Mkq5hVemWLzBYixz8f2NT_YNrIS2dRyILr8XrZcnBCat5msNe0SthlqmeOWP8tPsa_t1FtzY8Wg577-CSlHHuXD2BZj54yu2We5rugfbAzgdqg0acgVymdQD7fj-j0ugD_pKQ0Sgz6cK_QRDhTMtRPXyQQ4lk6EH1SS21TM7dnCZF_ikfSvVJvoEfQuZfldaEQSxeP0CM97Pd8IRVSRApcJhZyTzeI8PNsjEg")'}}
-            ></div>
+            {/* Kita ganti div background image dengan tag IMG biasa agar lebih rapi */}
+            <img 
+              src={logoVico} 
+              alt="Logo VICO" 
+              className="h-full w-full object-contain" 
+            />
           </div>
+
           {/* Brand Name & Subtitle */}
           <div className="flex flex-col gap-1">
             <h1 className="text-4xl font-extrabold tracking-tight text-[#111814] dark:text-[#f0fdf4]">VICO</h1>
@@ -51,7 +56,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
         {/* Input Field */}
         <div className="mb-8 w-full">
           <label className="flex flex-col gap-2">
-            <span className="text-base font-medium text-[#111814] dark:text-[#dbe6e0]">Nama Ketua/Produsen</span>
+            <span className="text-base font-medium text-[#111814] dark:text-[#dbe6e0]">Nama</span>
             <div className="relative">
               <input 
                 value={name}
@@ -73,9 +78,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
           </button>
         </div>
         
-        {/* Meta Text / Disclaimer */}
+        {/* Meta Text / Disclaimer - SUDAH DIBERSIHKAN DARI MATERIAL ICONS */}
         <div className="flex items-start justify-center gap-2 text-center">
-          <span aria-hidden="true" className="material-symbols-outlined mt-0.5 text-sm text-[#618973] dark:text-[#618973]">info</span>
+          {/* Pakai Lucide Icon 'Info' biar konsisten */}
+          <Info className="mt-0.5 h-4 w-4 text-[#618973] dark:text-[#618973]" />
           <p className="max-w-xs text-xs font-normal leading-relaxed text-[#618973] dark:text-[#618973]">
             Aplikasi akan meminta izin notifikasi untuk alarm timer
           </p>

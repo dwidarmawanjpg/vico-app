@@ -66,7 +66,7 @@ function App() {
   }
 
   if (activeTab === 'qc-step') {
-      return <QCStep onBack={() => setActiveTab('sop-step')} onFinish={() => setActiveTab('history')} />;
+      return <QCStep onBack={() => setActiveTab('sop-step')} onFinish={() => setActiveTab('history')} onHome={() => setActiveTab('home')} />;
   }
 
   if (activeTab === 'education') {

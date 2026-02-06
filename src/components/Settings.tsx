@@ -228,9 +228,9 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
                     <Droplet size={32} className="text-primary fill-current" />
                 </div>
                 <p className="text-lg font-bold">VICO</p>
-                <p className="text-text-sub dark:text-gray-400 text-sm">Versi 1.0.0 (Build 202310)</p>
+                <p className="text-text-sub dark:text-gray-400 text-sm">Versi 1.0.0 (Build 202601)</p>
                 <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-2"></div>
-                <p className="text-gray-400 dark:text-gray-500 text-xs">© 2023 VICO App. All rights reserved.</p>
+                <p className="text-gray-400 dark:text-gray-500 text-xs">© 2026 VICO App. All rights reserved.</p>
             </div>
             <div className="mt-4 text-center">
                 <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Dibuat dengan <span className="text-red-500">❤️</span> untuk produsen VCO Indonesia</p>

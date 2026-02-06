@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle, Save, PartyPopper } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, CheckCircle, Save, PartyPopper, Home } from 'lucide-react';
 import { useBatchStore } from '../stores/useBatchStore';
 import { BatchService } from '../services/BatchService';
 import type { QCResult } from '../types/batch';
 
 interface QCStepProps {
-    onBack: () => void;
-    onFinish: () => void;
+    onBack: () => void;     // Navigate to Step 6
+    onFinish: () => void;   // Navigate to History after completion
+    onHome: () => void;     // Navigate to Home (for manual mode or draft save)
 }
 
-const QCStep: React.FC<QCStepProps> = ({ onBack, onFinish }) => {
+const QCStep: React.FC<QCStepProps> = ({ onBack, onFinish, onHome }) => {
   const { currentBatch, refreshCurrentBatch } = useBatchStore();
+  
+  // Form state - initialized from existing batch data
   const [volume, setVolume] = useState<number | string>('');
   const [checks, setChecks] = useState({
       clearColor: false,
@@ -19,6 +22,22 @@ const QCStep: React.FC<QCStepProps> = ({ onBack, onFinish }) => {
   });
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Initialize form state from existing batch qcResult (if any)
+  useEffect(() => {
+    if (currentBatch?.qcResult) {
+      const qc = currentBatch.qcResult;
+      if (qc.qc_total_vco_ml) setVolume(qc.qc_total_vco_ml);
+      if (qc.qc_notes) setNotes(qc.qc_notes);
+      setChecks({
+        clearColor: qc.qc_clear ?? false,
+        normalAroma: qc.qc_no_rancid_smell ?? false,
+        noLayer: qc.qc_oil_layer_good ?? false,
+      });
+    }
+  }, [currentBatch?.id]);
 
   // Guard: If no batch is loaded, show loading/error state
   if (!currentBatch) {
@@ -27,16 +46,36 @@ const QCStep: React.FC<QCStepProps> = ({ onBack, onFinish }) => {
         <div className="text-center p-6">
           <p className="text-text-secondary dark:text-gray-400 mb-4">Batch tidak ditemukan</p>
           <button 
-            onClick={onBack}
+            onClick={onHome}
             className="px-6 py-3 bg-primary text-white rounded-xl font-medium"
           >
-            Kembali
+            Ke Beranda
           </button>
         </div>
       </div>
     );
   }
 
+  // Dynamic back navigation based on isManualMode
+  const handleBack = async () => {
+    if (currentBatch.isManualMode) {
+      // Manual mode: Back goes to Home (save draft first)
+      // Reason: Manual mode has no Step 6. Going back to Input would destroy batch.
+      await handleSaveDraft();
+    } else {
+      // Standard SOP flow: Navigate explicitly to STEP 6
+      // First set the batch's currentStep to 6, then navigate
+      try {
+        await BatchService.setCurrentStep(currentBatch.id, 6);
+        await refreshCurrentBatch();
+        onBack(); // This navigates to sop-step which will now show Step 6
+      } catch (error) {
+        console.error('Failed to navigate to Step 6:', error);
+      }
+    }
+  };
+
+  // Finalize batch with QC data
   const handleFinish = async () => {
       if (isSubmitting) return;
       
@@ -51,35 +90,82 @@ const QCStep: React.FC<QCStepProps> = ({ onBack, onFinish }) => {
           };
           
           await BatchService.finalizeBatch(currentBatch.id, qcResult);
-          await refreshCurrentBatch(); // Wait for state update
+          await refreshCurrentBatch();
+          
+          // Show success toast, then navigate
+          setToastMessage('Batch selesai! 🎉');
+          setShowToast(true);
           setTimeout(() => {
-             onFinish(); // Navigate after state is refreshed
-          }, 100);
+            setShowToast(false);
+            onFinish();
+          }, 1500);
       } catch (error) {
           console.error('Failed to finalize batch:', error);
-      } finally {
           setIsSubmitting(false);
       }
   };
 
+  // Save draft and navigate to home
   const handleSaveDraft = async () => {
-      onBack(); // Just go back, data is already in draft state in DB
+      try {
+          // Create partial QC result for draft
+          const draftQcResult: QCResult = {
+              qc_total_vco_ml: Number(volume) || 0,
+              qc_clear: checks.clearColor,
+              qc_no_rancid_smell: checks.normalAroma,
+              qc_oil_layer_good: checks.noLayer,
+              qc_notes: notes
+          };
+          
+          // Save draft to database (without finalizing)
+          await BatchService.updateBatch(currentBatch.id, { 
+              qcResult: draftQcResult 
+          });
+          
+          // Show toast and navigate to home
+          setToastMessage('Draft disimpan');
+          setShowToast(true);
+          setTimeout(() => {
+            setShowToast(false);
+            onHome();
+          }, 1000);
+      } catch (error) {
+          console.error('Failed to save draft:', error);
+      }
   };
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-28 bg-background-light dark:bg-background-dark font-display text-text-main dark:text-gray-100 antialiased selection:bg-primary/30 max-w-md mx-auto shadow-2xl">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-800 text-white px-4 py-2.5 rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+          <Save size={16} />
+          <span className="font-medium text-sm">{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="sticky top-0 z-20 flex items-center bg-surface-light dark:bg-surface-dark p-4 shadow-sm transition-colors duration-200">
+      <div className="sticky top-0 z-20 flex items-center justify-between bg-surface-light dark:bg-surface-dark p-4 shadow-sm transition-colors duration-200">
+        {/* Back Button - Dynamic Logic */}
         <button 
-            onClick={onBack}
+            onClick={handleBack}
             aria-label="Go back" 
             className="flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-text-main dark:text-white"
         >
           <ArrowLeft size={24} />
         </button>
-        <h2 className="flex-1 text-center text-lg font-bold leading-tight tracking-tight text-text-main dark:text-white pr-12">
+        <h2 className="flex-1 text-center text-lg font-bold leading-tight tracking-tight text-text-main dark:text-white">
             Kontrol Kualitas
         </h2>
+        {/* Home/Minimize Button */}
+        <button 
+            onClick={handleSaveDraft}
+            aria-label="Save draft and go home" 
+            className="flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-text-main dark:text-white"
+            title="Simpan draft & ke Beranda"
+        >
+          <Home size={22} />
+        </button>
       </div>
 
       {/* Celebration Banner */}
