@@ -60,6 +60,7 @@ export interface Batch {
   qcResult: QCResult | null;
   createdAt: number;
   updatedAt: number;
+  completedAt?: number;               // timestamp when batch was finalized
 }
 
 // Timer state for a single timer instance (multi-batch support)

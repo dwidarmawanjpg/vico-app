@@ -14,10 +14,16 @@ interface SOPStepProps {
 
 const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
   const { currentBatch, refreshCurrentBatch } = useBatchStore();
-  const { timers, startTimer, pauseTimer, resumeTimer, resetTimer, initTimer, tick, rehydrateAll } = useTimerStore();
+  const { timers, startTimer, pauseTimer, resumeTimer, resetTimer, initTimer, initCustomTimer, tick, rehydrateAll } = useTimerStore();
   
   // Toast state for minimize feedback
   const [showToast, setShowToast] = useState(false);
+  
+  // Edit timer modal state
+  const [showEditTimerModal, setShowEditTimerModal] = useState(false);
+  const [editHours, setEditHours] = useState(0);
+  const [editMinutes, setEditMinutes] = useState(0);
+  const [editSeconds, setEditSeconds] = useState(0);
   
   // Derive values with fallbacks (needed for hooks that depend on these)
   const stepNumber = (currentBatch?.currentStep || 1) as StepNumber;
@@ -245,7 +251,21 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
                     <Timer className="text-primary" size={20} />
                     <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Waktu Tersisa</h3>
                 </div>
-                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-primary transition-colors">
+                <button 
+                    onClick={() => {
+                        // Pre-fill with current time split into H:M:S
+                        const totalSecs = timeLeft > 0 ? timeLeft : (stepConfig.timer || 300);
+                        const hrs = Math.floor(totalSecs / 3600);
+                        const mins = Math.floor((totalSecs % 3600) / 60);
+                        const secs = totalSecs % 60;
+                        setEditHours(hrs);
+                        setEditMinutes(mins);
+                        setEditSeconds(secs);
+                        setShowEditTimerModal(true);
+                    }}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-primary transition-colors"
+                    title="Edit durasi timer"
+                >
                     <Edit2 size={18} />
                 </button>
             </div>
@@ -412,6 +432,94 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
             <ArrowRight size={24} />
         </button>
       </div>
+
+      {/* Edit Timer Modal */}
+      {showEditTimerModal && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowEditTimerModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-surface-dark rounded-2xl p-6 w-full max-w-sm shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-text-main dark:text-white mb-4 text-center">
+              Edit Durasi Timer
+            </h3>
+            
+            {/* 3-Input Layout: Hours : Minutes : Seconds */}
+            <div className="flex items-center justify-center gap-2 mb-6">
+              {/* Hours */}
+              <div className="flex flex-col items-center gap-1">
+                <input
+                  type="number"
+                  value={editHours}
+                  onChange={(e) => setEditHours(Math.max(0, Math.min(99, parseInt(e.target.value) || 0)))}
+                  className="w-16 h-16 text-2xl font-bold text-center rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  min="0"
+                  max="99"
+                />
+                <span className="text-xs font-medium text-gray-500">Jam</span>
+              </div>
+              
+              <span className="text-2xl font-bold text-gray-400 pb-5">:</span>
+              
+              {/* Minutes */}
+              <div className="flex flex-col items-center gap-1">
+                <input
+                  type="number"
+                  value={editMinutes}
+                  onChange={(e) => setEditMinutes(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                  className="w-16 h-16 text-2xl font-bold text-center rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  min="0"
+                  max="59"
+                />
+                <span className="text-xs font-medium text-gray-500">Menit</span>
+              </div>
+              
+              <span className="text-2xl font-bold text-gray-400 pb-5">:</span>
+              
+              {/* Seconds */}
+              <div className="flex flex-col items-center gap-1">
+                <input
+                  type="number"
+                  value={editSeconds}
+                  onChange={(e) => setEditSeconds(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                  className="w-16 h-16 text-2xl font-bold text-center rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  min="0"
+                  max="59"
+                />
+                <span className="text-xs font-medium text-gray-500">Detik</span>
+              </div>
+            </div>
+            
+            <p className="text-xs text-text-sub dark:text-gray-500 mb-4 text-center">
+              Timer akan di-reset ke durasi baru
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEditTimerModal(false)}
+                className="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 text-text-main dark:text-white font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={async () => {
+                  const totalSeconds = (editHours * 3600) + (editMinutes * 60) + editSeconds;
+                  if (totalSeconds > 0) {
+                    await initCustomTimer(batchId, stepNumber, totalSeconds);
+                    setShowEditTimerModal(false);
+                  }
+                }}
+                className="flex-1 h-12 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -24,16 +24,22 @@ interface HistoryProps {
 
 // Helper to transform DB batch to display format
 const transformBatch = (batch: DBBatch): BatchDisplay => {
-    const date = new Date(batch.date);
+    // Use completedAt for time display, fallback to updatedAt, then date
+    const displayTimestamp = batch.completedAt ?? batch.updatedAt ?? batch.date;
+    const displayDate = new Date(displayTimestamp);
+    
+    // For date string, use original production date
+    const productionDate = new Date(batch.date);
+    
     const volume = batch.qcResult?.qc_total_vco_ml ?? 0;
     const efficiency = batch.inputWeight > 0 ? YieldService.calculateEfficiency(volume, batch.inputWeight) : 0;
     
     return {
         id: batch.id,
         batchId: batch.id,
-        dateStr: date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-        timeStr: date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        datetime: date,
+        dateStr: productionDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        timeStr: displayDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        datetime: displayDate,
         status: batch.status === 'done' ? 'Selesai' : 'Gagal',
         volume,
         notes: batch.qcResult?.qc_notes || (batch.status === 'failed' ? 'Produksi gagal' : undefined),

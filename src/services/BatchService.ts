@@ -179,6 +179,7 @@ export const BatchService = {
       status: 'done',
       currentStep: QC_STEP,
       qcResult,
+      completedAt: Date.now(), // Save completion timestamp
     });
     // Clean up timer
     await db.timers.delete(batchId);
