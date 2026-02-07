@@ -20,7 +20,7 @@ import { useBatchStore } from './stores/useBatchStore';
 import { ClipboardList } from 'lucide-react';
 import GlobalTimerListener from './components/GlobalTimerListener';
 
-function App() {
+function AppContent() {
   const { isLoaded, loadProfile } = useUserStore();
   const { activeBatches, loadActiveBatches, setCurrentBatch } = useBatchStore();
   const [activeTab, setActiveTab] = React.useState('home');
@@ -69,7 +69,7 @@ function App() {
   if (activeTab === 'sop-input') {
       return (
         <>
-          <GlobalTimerListener />
+
           <SOPInput 
             onBack={() => setActiveTab('home')} 
             onStart={() => setActiveTab('sop-step')} 
@@ -85,7 +85,7 @@ function App() {
   if (activeTab === 'sop-step') {
       return (
         <>
-          <GlobalTimerListener /> 
+ 
           <SOPStep 
             onBack={() => setActiveTab('home')} 
             onNext={() => setActiveTab('qc-step')}
@@ -98,7 +98,7 @@ function App() {
   if (activeTab === 'qc-step') {
       return (
         <>
-          <GlobalTimerListener />
+
           <QCStep 
             onBack={() => setActiveTab('sop-step')} // Or handle back appropriately
             onFinish={() => {
@@ -114,7 +114,7 @@ function App() {
   if (activeTab === 'manual-form') {
       return (
         <>
-          <GlobalTimerListener />
+
           <ManualBatchForm 
             initialWeight={manualInputData?.weight}
             initialWater={manualInputData?.water}
@@ -133,7 +133,7 @@ function App() {
   if (activeTab === 'education') {
       return (
         <>
-          <GlobalTimerListener />
+
           <Education onNavigate={setActiveTab} onModuleClick={(module) => {
               setSelectedModule(module as ModuleData);
               setActiveTab('education-detail');
@@ -145,7 +145,7 @@ function App() {
   if (activeTab === 'education-detail' && selectedModule) {
       return (
         <>
-          <GlobalTimerListener />
+
           <EducationDetail 
             module={selectedModule} 
             onBack={() => setActiveTab('education')} 
@@ -157,7 +157,7 @@ function App() {
   if (activeTab === 'settings') {
       return (
         <>
-          <GlobalTimerListener />
+
           <Settings onNavigate={setActiveTab} />
         </>
       );
@@ -166,7 +166,7 @@ function App() {
   if (activeTab === 'history') {
       return (
           <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen flex flex-col font-display selection:bg-primary/30">
-              <GlobalTimerListener />
+    
               <History onBatchClick={(batch) => {
                   setSelectedBatchId(batch.batchId);
                   setActiveTab('history-detail');
@@ -261,6 +261,17 @@ function App() {
 
       <BottomNav activeTab={activeTab} onNavigate={setActiveTab} />
     </div>
+  );
+}
+
+
+
+function App() {
+  return (
+    <>
+      <GlobalTimerListener />
+      <AppContent />
+    </>
   );
 }
 

@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: true,
-    backgroundColor: '#ffffff'
+    backgroundColor: '#064e3b' // Match the app's primary dark green theme
   }
 };
 

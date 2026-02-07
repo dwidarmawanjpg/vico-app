@@ -19,13 +19,13 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
   const { alarmEnabled, soundEnabled, setAlarmEnabled, setSoundEnabled } = useSettingsStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(profile.name);
-  const [editLocation, setEditLocation] = useState(profile.location);
+
   
   // Export state
   const [isExporting, setIsExporting] = useState(false);
 
   const handleSaveProfile = () => {
-    updateProfile({ name: editName, location: editLocation });
+    updateProfile({ name: editName });
     setIsEditing(false);
   };
 
@@ -104,17 +104,12 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
                             onChange={(e) => setEditName(e.target.value)}
                             placeholder="Nama Lengkap"
                         />
-                        <input 
-                            className="text-sm font-normal text-gray-500 border-b border-gray-200 outline-none bg-transparent"
-                            value={editLocation}
-                            onChange={(e) => setEditLocation(e.target.value)}
-                            placeholder="Lokasi Produksi"
-                        />
+
                     </div>
                 ) : (
                     <div className="flex flex-col flex-1 min-w-0">
                         <p className="text-base font-semibold leading-normal truncate">Nama: {profile.name}</p>
-                        <p className="text-text-sub dark:text-gray-400 text-sm font-normal truncate">{profile.location}</p>
+
                     </div>
                 )}
 

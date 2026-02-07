@@ -89,7 +89,7 @@ export const TimerService = {
     if (!timer) return;
     
     await db.timers.update(batchId, {
-      startTime: Date.now(),
+      startTime: null, // Reset to null so calculateRemaining returns totalDuration
       pausedAt: null,
       remainingWhenPaused: null,
       isActive: false,

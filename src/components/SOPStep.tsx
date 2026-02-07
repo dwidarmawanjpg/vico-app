@@ -621,6 +621,7 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
               onClick={() => {
                 SoundService.stopAlarmSound();
                 setIsAlarmActive(false);
+                resetTimer(batchId); // Reset global timer state to prevent re-triggering
               }}
               className="w-full h-14 rounded-xl bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 active:scale-[0.98]"
             >

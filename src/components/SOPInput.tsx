@@ -10,7 +10,7 @@ interface SOPInputProps {
 
 const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onManualInput }) => {
   const [mode, setMode] = useState<'gram' | 'target'>('gram');
-  const [inputValue, setInputValue] = useState<number | string>(2500);
+  const [inputValue, setInputValue] = useState<number | string>('');
   const [isManualMode, setIsManualMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -99,7 +99,7 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onManualInput }) =
                 checked={mode === 'gram'}
                 onChange={() => {
                     setMode('gram');
-                    setInputValue(2500); // Reset to default
+                    setInputValue(''); // Reset to empty
                 }}
               />
             </label>
@@ -113,7 +113,7 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onManualInput }) =
                 checked={mode === 'target'}
                 onChange={() => {
                     setMode('target');
-                    setInputValue(250); // Reset to default target
+                    setInputValue(''); // Reset to empty
                 }}
               />
             </label>
