@@ -201,4 +201,41 @@ export const BatchService = {
     const processCount = await BatchRepository.countByStatus('process');
     return draftCount + processCount;
   },
+
+  /**
+   * Create a manual batch (already completed) for historical record
+   */
+  async createManualBatch(params: {
+    date: number;
+    inputWeight: number;
+    waterVolume: number;
+    inputMode: 'gram' | 'target';
+    qcResult: QCResult;
+    completedAt: number;
+  }): Promise<Batch> {
+    const { date, inputWeight, waterVolume, inputMode, qcResult, completedAt } = params;
+    
+    // Generate batch ID based on the production date
+    const productionDate = new Date(date);
+    const id = await generateBatchId(productionDate);
+    
+    const batch: Batch = {
+      id,
+      date,
+      status: 'done', // Directly mark as completed
+      inputWeight,
+      waterVolume,
+      inputMode,
+      isManualMode: true,
+      currentStep: QC_STEP,
+      checklists: {},
+      qcResult,
+      createdAt: date, // Use user-provided start time, not Date.now()
+      updatedAt: Date.now(),
+      completedAt,
+    };
+    
+    await BatchRepository.create(batch);
+    return batch;
+  },
 };

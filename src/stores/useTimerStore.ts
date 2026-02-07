@@ -137,12 +137,16 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     const timer = get().timers[batchId];
     if (!timer || !timer.isActive || timer.timeLeft <= 0) return;
     
+    const newTimeLeft = Math.max(0, timer.timeLeft - 1);
+    
     set((state) => ({
       timers: {
         ...state.timers,
         [batchId]: {
           ...timer,
-          timeLeft: Math.max(0, timer.timeLeft - 1),
+          timeLeft: newTimeLeft,
+          // Auto-pause when timer reaches 0 (timer finished)
+          isActive: newTimeLeft > 0 ? timer.isActive : false,
         },
       },
     }));

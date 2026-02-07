@@ -9,6 +9,7 @@ import HistoryDetail from './components/HistoryDetail';
 import SOPInput from './components/SOPInput';
 import SOPStep from './components/SOPStep';
 import QCStep from './components/QCStep';
+import ManualBatchForm from './components/ManualBatchForm';
 import Education from './components/Education';
 import EducationDetail, { ModuleData } from './components/EducationDetail';
 import Settings from './components/Settings';
@@ -17,6 +18,7 @@ import ActiveBatchCard from './components/ActiveBatchCard';
 import { useUserStore } from './stores/useUserStore';
 import { useBatchStore } from './stores/useBatchStore';
 import { ClipboardList } from 'lucide-react';
+import GlobalTimerListener from './components/GlobalTimerListener';
 
 function App() {
   const { isLoaded, loadProfile } = useUserStore();
@@ -24,6 +26,7 @@ function App() {
   const [activeTab, setActiveTab] = React.useState('home');
   const [selectedModule, setSelectedModule] = React.useState<ModuleData | null>(null);
   const [selectedBatchId, setSelectedBatchId] = React.useState<string | null>(null);
+  const [manualInputData, setManualInputData] = React.useState<{ weight: number; water: number } | null>(null);
 
   // Load user profile from localStorage on mount
   React.useEffect(() => {
@@ -44,6 +47,7 @@ function App() {
   if (!isLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background-light dark:bg-background-dark">
+        <GlobalTimerListener />
         <div className="animate-pulse text-primary font-bold text-xl">VICO</div>
       </div>
     );
@@ -51,45 +55,118 @@ function App() {
 
   // Show onboarding only for first-time users
   if (isFirstTimeUser) {
-    return <Onboarding onStart={() => {
-      // Force re-render after profile is saved
-      loadProfile();
-    }} />;
+    return (
+      <>
+        <GlobalTimerListener />
+        <Onboarding onStart={() => {
+          // Force re-render after profile is saved
+          loadProfile();
+        }} />
+      </>
+    );
   }
 
   if (activeTab === 'sop-input') {
-      return <SOPInput onBack={() => setActiveTab('home')} onStart={() => setActiveTab('sop-step')} onSkipToQC={() => setActiveTab('qc-step')} />;
+      return (
+        <>
+          <GlobalTimerListener />
+          <SOPInput 
+            onBack={() => setActiveTab('home')} 
+            onStart={() => setActiveTab('sop-step')} 
+            onManualInput={(data) => {
+              setManualInputData(data);
+              setActiveTab('manual-form');
+            }}
+          />
+        </>
+      );
   }
 
   if (activeTab === 'sop-step') {
-      return <SOPStep onBack={() => setActiveTab('sop-input')} onNext={() => setActiveTab('qc-step')} onHome={() => setActiveTab('home')} />;
+      return (
+        <>
+          <GlobalTimerListener /> 
+          <SOPStep 
+            onBack={() => setActiveTab('home')} 
+            onNext={() => setActiveTab('qc-step')}
+            onHome={() => setActiveTab('home')}
+          />
+        </>
+      );
   }
 
   if (activeTab === 'qc-step') {
-      return <QCStep onBack={() => setActiveTab('sop-step')} onFinish={() => setActiveTab('history')} onHome={() => setActiveTab('home')} />;
+      return (
+        <>
+          <GlobalTimerListener />
+          <QCStep 
+            onBack={() => setActiveTab('sop-step')} // Or handle back appropriately
+            onFinish={() => {
+              setActiveTab('history');
+              loadActiveBatches(); // Refresh to remove the finished batch
+            }}
+            onHome={() => setActiveTab('home')}
+          />
+        </>
+      );
+  }
+
+  if (activeTab === 'manual-form') {
+      return (
+        <>
+          <GlobalTimerListener />
+          <ManualBatchForm 
+            initialWeight={manualInputData?.weight}
+            initialWater={manualInputData?.water}
+            onBack={() => setActiveTab('sop-input')}
+            onSuccess={() => {
+              setManualInputData(null);
+              loadActiveBatches(); // Refresh list to show new completed info
+              // Let's redirect to History tab which is safer
+              setActiveTab('history');
+            }}
+          />
+        </>
+      );
   }
 
   if (activeTab === 'education') {
-      return <Education onNavigate={setActiveTab} onModuleClick={(module) => {
-          setSelectedModule(module as ModuleData);
-          setActiveTab('education-detail');
-      }} />;
+      return (
+        <>
+          <GlobalTimerListener />
+          <Education onNavigate={setActiveTab} onModuleClick={(module) => {
+              setSelectedModule(module as ModuleData);
+              setActiveTab('education-detail');
+          }} />
+        </>
+      );
   }
 
   if (activeTab === 'education-detail' && selectedModule) {
-      return <EducationDetail module={selectedModule} onBack={() => setActiveTab('education')} />;
+      return (
+        <>
+          <GlobalTimerListener />
+          <EducationDetail 
+            module={selectedModule} 
+            onBack={() => setActiveTab('education')} 
+          />
+        </>
+      );
   }
 
   if (activeTab === 'settings') {
-      return <Settings onNavigate={setActiveTab} />;
+      return (
+        <>
+          <GlobalTimerListener />
+          <Settings onNavigate={setActiveTab} />
+        </>
+      );
   }
-
-
-
 
   if (activeTab === 'history') {
       return (
           <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen flex flex-col font-display selection:bg-primary/30">
+              <GlobalTimerListener />
               <History onBatchClick={(batch) => {
                   setSelectedBatchId(batch.batchId);
                   setActiveTab('history-detail');

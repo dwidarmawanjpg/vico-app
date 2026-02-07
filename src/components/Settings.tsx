@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { 
-    User, Edit2, Download, ChevronRight, Timer, Volume2, 
-    Trash2, Droplet, Bell, Save, X
+    User, Edit2, ChevronRight, Timer, Volume2, 
+    Trash2, Droplet, Bell, Save, X, Share2, Loader2
 } from 'lucide-react';
 import BottomNav from './BottomNav';
 import { useUserStore } from '../stores/useUserStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
+import { BatchService } from '../services/BatchService';
+import { shareBatchReport } from '../utils/reportGenerator';
 import { db } from '../db/database';
 
 interface SettingsProps {
@@ -13,16 +16,39 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
   const { profile, updateProfile, resetProfile } = useUserStore();
+  const { alarmEnabled, soundEnabled, setAlarmEnabled, setSoundEnabled } = useSettingsStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(profile.name);
   const [editLocation, setEditLocation] = useState(profile.location);
-
-  const [alarmEnabled, setAlarmEnabled] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  
+  // Export state
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleSaveProfile = () => {
     updateProfile({ name: editName, location: editLocation });
     setIsEditing(false);
+  };
+
+  const handleExportCSV = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    
+    try {
+      // Fetch all completed batches from the database
+      const allBatches = await BatchService.getHistoryBatches();
+      const result = await shareBatchReport(allBatches, profile.name);
+      
+      if (!result.success) {
+        alert(result.message);
+      }
+      // On success with download, the file is already downloaded
+      // On success with share, the native share dialog handles feedback
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Gagal mengekspor data');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleResetApp = async () => {
@@ -143,18 +169,24 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
                 <span className="material-symbols-outlined text-primary text-[20px]">analytics</span>
                 Data
             </h3>
-            <div className="flex items-center gap-4 bg-white dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer active:scale-[0.98] transition-transform group">
+            <button 
+                onClick={handleExportCSV}
+                disabled={isExporting}
+                className="flex items-center gap-4 bg-white dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer active:scale-[0.98] transition-transform group disabled:opacity-50 disabled:cursor-not-allowed w-full text-left"
+            >
                 <div className="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-12 group-hover:bg-primary/20 transition-colors">
-                    <Download size={24} />
+                    {isExporting ? <Loader2 size={24} className="animate-spin" /> : <Share2 size={24} />}
                 </div>
                 <div className="flex flex-col flex-1 justify-center">
-                    <p className="text-base font-medium leading-normal line-clamp-1">Export Data (CSV)</p>
-                    <p className="text-text-sub dark:text-gray-400 text-sm font-normal leading-normal line-clamp-2">Unduh semua riwayat produksi</p>
+                    <p className="text-base font-medium leading-normal line-clamp-1">Bagikan Laporan (CSV)</p>
+                    <p className="text-text-sub dark:text-gray-400 text-sm font-normal leading-normal line-clamp-2">
+                        {isExporting ? 'Memproses...' : 'Export & bagikan riwayat produksi'}
+                    </p>
                 </div>
                 <div className="shrink-0 text-gray-400 dark:text-gray-500">
                     <ChevronRight size={24} />
                 </div>
-            </div>
+            </button>
         </section>
 
         {/* Notifikasi Section */}

@@ -1,27 +1,44 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Droplets, Thermometer, Disc, TrendingUp, PlayCircle, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Droplets, Thermometer, Disc, TrendingUp, PlayCircle } from 'lucide-react';
 import { useBatchStore } from '../stores/useBatchStore';
 
 interface SOPInputProps {
     onBack: () => void;
     onStart: () => void;
-    onSkipToQC?: () => void; // For manual mode
+    onManualInput?: (data: { weight: number; water: number }) => void; // For manual mode with data
 }
 
-const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
+const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onManualInput }) => {
   const [mode, setMode] = useState<'gram' | 'target'>('gram');
   const [inputValue, setInputValue] = useState<number | string>(2500);
   const [isManualMode, setIsManualMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Production date (default to today)
-  const today = new Date().toISOString().split('T')[0];
-  const [productionDate, setProductionDate] = useState(today);
+  // Unit toggle for target mode (mL / Liter)
+  const [targetUnit, setTargetUnit] = useState<'ml' | 'liter'>('ml');
+  
+  // Unit toggle for parutan mode (gram / kg)
+  const [weightUnit, setWeightUnit] = useState<'gram' | 'kg'>('kg');
   
   const { createBatch } = useBatchStore();
   
   // Derived state for calculations
   const numericValue = typeof inputValue === 'string' ? parseFloat(inputValue) || 0 : inputValue;
+
+  // Helper: Format weight with dual units (Kg + gram)
+  const formatWeight = (grams: number): string => {
+    if (grams >= 1000) {
+      const kg = grams / 1000;
+      return `${kg.toLocaleString('id-ID', { maximumFractionDigits: 1 })} Kg (${grams.toLocaleString('id-ID')} g)`;
+    }
+    return `${grams.toLocaleString('id-ID')} gram`;
+  };
+
+  // Helper: Format volume with dual units (Liter + mL)
+  const formatVolume = (liters: number): string => {
+    const ml = liters * 1000;
+    return `${liters.toLocaleString('id-ID', { maximumFractionDigits: 2 })} L (${ml.toLocaleString('id-ID')} mL)`;
+  };
 
   // Calculation Logic
   // Assumption: 1 kg (1000g) coconut needs 1 Liter water
@@ -29,23 +46,23 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
   
   const getCalculations = () => {
       if (mode === 'gram') {
-          // Input is Coconut in Grams
-          const coconut = numericValue;
-          const water = coconut / 1000;
-          const minYield = Math.floor(coconut * 0.1);
-          const maxYield = Math.floor(coconut * 0.12);
-          return { coconut, water, minYield, maxYield, type: 'gram' as const };
+          // Input is Coconut in Grams or Kg (convert to grams for calculations)
+          const coconutGrams = weightUnit === 'kg' ? numericValue * 1000 : numericValue;
+          const water = coconutGrams / 1000;
+          const minYield = Math.floor(coconutGrams * 0.1);
+          const maxYield = Math.floor(coconutGrams * 0.12);
+          return { coconut: coconutGrams, water, minYield, maxYield, type: 'gram' as const };
       } else {
-          // Input is Target in mL
-          const target = numericValue;
-           // If target is 100mL, we need 1000g coconut (at 100mL/kg yield)
-          const requiredCoconut = target / 0.1;
+          // Input is Target in mL or Liter (convert to mL for calculations)
+          const targetMl = targetUnit === 'liter' ? numericValue * 1000 : numericValue;
+          // If target is 100mL, we need 1000g coconut (at 100mL/kg yield)
+          const requiredCoconut = targetMl / 0.1;
           const requiredWater = requiredCoconut / 1000;
-          const maxPotential = Math.floor(target * 1.2);
+          const maxPotential = Math.floor(targetMl * 1.2);
           return { 
               requiredCoconut, 
               requiredWater, 
-              target, 
+              target: targetMl, 
               maxPotential,
               type: 'ml' as const
           };
@@ -73,7 +90,7 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
         <div className="flex">
           <div className="flex h-12 flex-1 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 p-1">
             <label className={`flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-sm font-bold transition-all duration-200 ${mode === 'gram' ? 'bg-white dark:bg-surface-dark shadow-sm text-primary' : 'text-text-secondary dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
-              <span className="truncate">PARUTAN (gram)</span>
+              <span className="truncate">PARUTAN (gram/kg)</span>
               <input 
                 className="hidden" 
                 name="method_selector" 
@@ -87,7 +104,7 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
               />
             </label>
             <label className={`flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-sm font-bold transition-all duration-200 ${mode === 'target' ? 'bg-white dark:bg-surface-dark shadow-sm text-primary' : 'text-text-secondary dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
-              <span className="truncate">TARGET (mL)</span>
+              <span className="truncate">TARGET (mL/L)</span>
               <input 
                 className="hidden" 
                 name="method_selector" 
@@ -106,19 +123,34 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
         {/* Primary Input */}
         <div className="flex flex-col gap-2">
           <label className="text-text-main dark:text-gray-200 text-sm font-medium ml-1">
-              {mode === 'gram' ? 'Berat Parutan Kelapa' : 'Target Produksi'}
+              {mode === 'gram' 
+                ? `Berat Parutan Kelapa (${weightUnit === 'kg' ? 'Kg' : 'gram'})` 
+                : `Target Produksi (${targetUnit === 'liter' ? 'Liter' : 'mL'})`}
           </label>
           <div className="relative flex items-center">
             <input 
-                className="w-full bg-white dark:bg-surface-dark border-2 border-transparent focus:border-primary dark:focus:border-primary hover:border-gray-200 dark:hover:border-gray-700 rounded-xl text-text-main dark:text-white text-4xl font-bold p-6 pr-24 shadow-sm focus:ring-0 transition-all placeholder:text-gray-300 outline-none" 
+                className="w-full bg-white dark:bg-surface-dark border-2 border-transparent focus:border-primary dark:focus:border-primary hover:border-gray-200 dark:hover:border-gray-700 rounded-xl text-text-main dark:text-white text-4xl font-bold p-6 pr-28 shadow-sm focus:ring-0 transition-all placeholder:text-gray-300 outline-none" 
                 placeholder="0" 
                 type="number" 
+                step={mode === 'gram' && weightUnit === 'kg' ? '0.1' : '1'}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
             />
-            <span className="absolute right-6 text-text-secondary dark:text-gray-400 font-medium text-lg pointer-events-none">
-                {mode === 'gram' ? 'gram' : 'mL'}
-            </span>
+            {mode === 'gram' ? (
+              <button
+                onClick={() => setWeightUnit(prev => prev === 'gram' ? 'kg' : 'gram')}
+                className="absolute right-4 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-bold text-sm hover:bg-primary/20 transition-colors"
+              >
+                {weightUnit === 'gram' ? 'g' : 'Kg'}
+              </button>
+            ) : (
+              <button
+                onClick={() => setTargetUnit(prev => prev === 'ml' ? 'liter' : 'ml')}
+                className="absolute right-4 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-bold text-sm hover:bg-primary/20 transition-colors"
+              >
+                {targetUnit === 'ml' ? 'mL' : 'L'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -131,7 +163,7 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
                         <div className="flex items-center gap-2 text-primary-dark dark:text-primary">
                             <Droplets size={20} />
                             <span className="font-bold text-lg">
-                                {calcs.water.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Liter
+                                {formatVolume(calcs.water)}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 text-text-secondary dark:text-gray-300">
@@ -144,7 +176,7 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
                         <TrendingUp size={20} className="text-primary-dark dark:text-primary" />
                         <span className="text-sm font-medium">
                             Estimasi Hasil: <span className="font-bold">
-                                {calcs.minYield} - {calcs.maxYield} mL
+                                {calcs.minYield.toLocaleString('id-ID')} - {calcs.maxYield.toLocaleString('id-ID')} mL
                             </span>
                         </span>
                      </div>
@@ -155,7 +187,7 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
                     <div className="flex items-center gap-2 text-text-main dark:text-white">
                         <Disc size={20} className="text-primary-dark dark:text-primary" />
                         <span className="font-bold text-lg">
-                             Butuh Kelapa: {calcs.requiredCoconut.toLocaleString('id-ID')} gram
+                             Butuh Kelapa: {formatWeight(calcs.requiredCoconut)}
                         </span>
                     </div>
                     
@@ -163,7 +195,7 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
                         <div className="flex items-center gap-2 text-text-secondary dark:text-gray-300">
                             <Droplets size={18} />
                             <span className="text-sm font-medium">
-                                Butuh Air: {calcs.requiredWater.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Liter
+                                Butuh Air: {formatVolume(calcs.requiredWater)}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 text-text-secondary dark:text-gray-300">
@@ -178,26 +210,12 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
                         <TrendingUp size={20} className="text-primary-dark dark:text-primary" />
                         <span className="text-sm font-medium">
                             Potensi Hasil: <span className="font-bold">
-                                {calcs.target} - {calcs.maxPotential} mL
+                                {calcs.target.toLocaleString('id-ID')} - {calcs.maxPotential.toLocaleString('id-ID')} mL
                             </span>
                         </span>
                      </div>
                 </>
             )}
-        </div>
-
-        {/* Production Date Picker */}
-        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-3 mb-3">
-            <CalendarDays className="text-primary" size={20} />
-            <span className="text-text-main dark:text-white font-medium">Tanggal Produksi</span>
-          </div>
-          <input 
-            type="date"
-            value={productionDate}
-            onChange={(e) => setProductionDate(e.target.value)}
-            className="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-text-main dark:text-white font-medium focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
         </div>
 
         {/* Manual Mode Toggle */}
@@ -227,27 +245,33 @@ const SOPInput: React.FC<SOPInputProps> = ({ onBack, onStart, onSkipToQC }) => {
           <button 
             onClick={async () => {
               if (isLoading) return;
+              
+              // Calculate input weight based on mode and unit
+              const inputWeight = mode === 'gram' 
+                ? (weightUnit === 'kg' ? numericValue * 1000 : numericValue)
+                : numericValue / 0.1; // Convert target mL to required grams
+              
+              // Calculate water volume
+              const waterVolume = mode === 'gram' 
+                ? (weightUnit === 'kg' ? numericValue : numericValue / 1000)
+                : (numericValue / 0.1) / 1000;
+              
+              // MANUAL MODE: Skip batch creation, just navigate with data
+              if (isManualMode && onManualInput) {
+                onManualInput({ weight: inputWeight, water: waterVolume });
+                return;
+              }
+              
+              // STANDARD SOP MODE: Create batch then navigate
               setIsLoading(true);
               try {
-                // Calculate input weight based on mode
-                const inputWeight = mode === 'gram' 
-                  ? numericValue 
-                  : numericValue / 0.1; // Convert target mL to required grams
-                
-                // Create batch in database with selected production date
                 await createBatch({
                   inputWeight,
                   inputMode: mode,
-                  isManualMode,
-                  productionDate: new Date(productionDate),
+                  isManualMode: false,
+                  productionDate: new Date(),
                 });
-                
-                // Navigate based on manual mode
-                if (isManualMode && onSkipToQC) {
-                  onSkipToQC();
-                } else {
-                  onStart();
-                }
+                onStart();
               } catch (error) {
                 console.error('Failed to create batch:', error);
               } finally {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Lock, Check, X, Trash2, Droplets, Scale, FileText, Eye, AlertTriangle, Sparkles, Calendar, Save, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Lock, Check, X, Trash2, Droplets, Scale, FileText, Eye, AlertTriangle, Sparkles, Save, CheckCircle, Clock } from 'lucide-react';
 import { BatchService } from '../services/BatchService';
 import { YieldService } from '../services/YieldService';
 import type { Batch, QCResult } from '../types/batch';
@@ -29,6 +29,11 @@ const HistoryDetail: React.FC<HistoryDetailProps> = ({ batchId, onBack, onDelete
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Display unit toggles
+  const [weightDisplayUnit, setWeightDisplayUnit] = useState<'gram' | 'kg'>('gram');
+  const [waterDisplayUnit, setWaterDisplayUnit] = useState<'liter' | 'ml'>('liter');
+  const [vcoDisplayUnit, setVcoDisplayUnit] = useState<'ml' | 'liter'>('ml');
 
   // Editable form state
   const [formData, setFormData] = useState<FormData>({
@@ -147,29 +152,6 @@ const HistoryDetail: React.FC<HistoryDetailProps> = ({ batchId, onBack, onDelete
     }
   };
 
-  // Format date for input - with defensive fallback
-  const formatDateForInput = (timestamp: number): string => {
-    // Defensive: Handle invalid timestamps
-    if (!timestamp || isNaN(timestamp) || timestamp <= 0) {
-      return new Date().toISOString().split('T')[0]; // Return today as fallback
-    }
-    try {
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) {
-        return new Date().toISOString().split('T')[0];
-      }
-      return date.toISOString().split('T')[0];
-    } catch {
-      return new Date().toISOString().split('T')[0];
-    }
-  };
-
-  // Parse date from input
-  const parseDateFromInput = (dateStr: string): number => {
-    const timestamp = new Date(dateStr).getTime();
-    return isNaN(timestamp) ? Date.now() : timestamp;
-  };
-
   // Loading state
   if (isLoading) {
     return (
@@ -253,19 +235,46 @@ const HistoryDetail: React.FC<HistoryDetailProps> = ({ batchId, onBack, onDelete
           </div>
         </div>
 
-        {/* Date Section - EDITABLE */}
-        <div>
-          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 px-1">Tanggal Produksi</label>
-          <div className="flex w-full items-center gap-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-800 p-3 shadow-sm focus-within:ring-2 focus-within:ring-primary transition-all">
-            <Calendar className="text-primary shrink-0" size={20} />
-            <input
-              type="date"
-              value={formatDateForInput(formData.date)}
-              onChange={(e) => updateField('date', parseDateFromInput(e.target.value))}
-              className="flex-1 bg-transparent border-none outline-none text-text-main dark:text-white font-medium text-base"
-            />
+        {/* Time & Duration Section */}
+        {batch.createdAt && batch.completedAt && (
+          <div>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 px-1">Waktu & Durasi</label>
+            <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Clock size={16} />
+                  <span className="text-sm">Mulai</span>
+                </div>
+                <span className="text-text-main dark:text-white font-medium">
+                  {new Date(batch.createdAt).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                </span>
+              </div>
+              <div className="h-px bg-gray-100 dark:bg-gray-800"></div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <CheckCircle size={16} />
+                  <span className="text-sm">Selesai</span>
+                </div>
+                <span className="text-text-main dark:text-white font-medium">
+                  {new Date(batch.completedAt).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                </span>
+              </div>
+              <div className="h-px bg-gray-100 dark:bg-gray-800"></div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Total Durasi</span>
+                <span className="text-primary font-bold">
+                  {(() => {
+                    const diffMs = batch.completedAt - batch.createdAt;
+                    const totalMinutes = Math.floor(diffMs / 60000);
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    return `${hours} Jam ${minutes} Menit`;
+                  })()}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Input & Ratio Section - EDITABLE */}
         <div>
@@ -275,36 +284,57 @@ const HistoryDetail: React.FC<HistoryDetailProps> = ({ batchId, onBack, onDelete
           </h3>
           <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div className="p-4 space-y-4">
-              {/* Parutan - EDITABLE */}
+              {/* Parutan - EDITABLE with Unit Toggle */}
               <div className="flex justify-between items-center py-1">
-                <label className="text-gray-500 dark:text-gray-400 text-sm font-medium">Parutan</label>
+                <label className="text-gray-500 dark:text-gray-400 text-sm font-medium">Kelapa</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    value={formData.inputWeight || ''}
-                    onChange={(e) => updateField('inputWeight', Number(e.target.value))}
-                    className="w-24 text-right bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-text-main dark:text-white text-base font-semibold focus:ring-2 focus:ring-primary outline-none"
+                    value={weightDisplayUnit === 'kg' 
+                      ? ((formData.inputWeight || 0) / 1000).toFixed(1) 
+                      : formData.inputWeight || ''}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      updateField('inputWeight', weightDisplayUnit === 'kg' ? val * 1000 : val);
+                    }}
+                    step={weightDisplayUnit === 'kg' ? '0.1' : '1'}
+                    className="w-20 text-right bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-text-main dark:text-white text-base font-semibold focus:ring-2 focus:ring-primary outline-none"
                     placeholder="0"
                   />
-                  <span className="text-gray-500 dark:text-gray-400 text-sm">gram</span>
+                  <button
+                    onClick={() => setWeightDisplayUnit(prev => prev === 'gram' ? 'kg' : 'gram')}
+                    className="px-2 py-1 rounded-lg bg-primary/10 text-primary font-bold text-xs hover:bg-primary/20 transition-colors min-w-[32px]"
+                  >
+                    {weightDisplayUnit === 'gram' ? 'g' : 'Kg'}
+                  </button>
                 </div>
               </div>
               
               <div className="h-px bg-gray-100 dark:bg-gray-800"></div>
               
-              {/* Air - EDITABLE */}
+              {/* Air - EDITABLE with Unit Toggle */}
               <div className="flex justify-between items-center py-1">
                 <label className="text-gray-500 dark:text-gray-400 text-sm font-medium">Air</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    step="0.1"
-                    value={formData.waterVolume || ''}
-                    onChange={(e) => updateField('waterVolume', Number(e.target.value))}
-                    className="w-24 text-right bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-text-main dark:text-white text-base font-semibold focus:ring-2 focus:ring-primary outline-none"
+                    step={waterDisplayUnit === 'liter' ? '0.1' : '1'}
+                    value={waterDisplayUnit === 'ml' 
+                      ? ((formData.waterVolume || 0) * 1000).toFixed(0) 
+                      : formData.waterVolume || ''}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      updateField('waterVolume', waterDisplayUnit === 'ml' ? val / 1000 : val);
+                    }}
+                    className="w-20 text-right bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-text-main dark:text-white text-base font-semibold focus:ring-2 focus:ring-primary outline-none"
                     placeholder="0"
                   />
-                  <span className="text-gray-500 dark:text-gray-400 text-sm">Liter</span>
+                  <button
+                    onClick={() => setWaterDisplayUnit(prev => prev === 'liter' ? 'ml' : 'liter')}
+                    className="px-2 py-1 rounded-lg bg-primary/10 text-primary font-bold text-xs hover:bg-primary/20 transition-colors min-w-[32px]"
+                  >
+                    {waterDisplayUnit === 'liter' ? 'L' : 'mL'}
+                  </button>
                 </div>
               </div>
 
@@ -344,18 +374,29 @@ const HistoryDetail: React.FC<HistoryDetailProps> = ({ batchId, onBack, onDelete
           </h3>
           <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div className="p-4 space-y-4">
-              {/* Volume - EDITABLE */}
+              {/* Volume - EDITABLE with Unit Toggle */}
               <div className="flex justify-between items-center py-1">
                 <label className="text-gray-500 dark:text-gray-400 text-sm font-medium">Volume VCO</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    value={formData.qc_total_vco_ml || ''}
-                    onChange={(e) => updateField('qc_total_vco_ml', Number(e.target.value))}
-                    className="w-24 text-right bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-text-main dark:text-white text-base font-semibold focus:ring-2 focus:ring-primary outline-none"
+                    step={vcoDisplayUnit === 'liter' ? '0.1' : '1'}
+                    value={vcoDisplayUnit === 'liter' 
+                      ? ((formData.qc_total_vco_ml || 0) / 1000).toFixed(1) 
+                      : formData.qc_total_vco_ml || ''}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      updateField('qc_total_vco_ml', vcoDisplayUnit === 'liter' ? val * 1000 : val);
+                    }}
+                    className="w-20 text-right bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-text-main dark:text-white text-base font-semibold focus:ring-2 focus:ring-primary outline-none"
                     placeholder="0"
                   />
-                  <span className="text-gray-500 dark:text-gray-400 text-sm">mL</span>
+                  <button
+                    onClick={() => setVcoDisplayUnit(prev => prev === 'ml' ? 'liter' : 'ml')}
+                    className="px-2 py-1 rounded-lg bg-primary/10 text-primary font-bold text-xs hover:bg-primary/20 transition-colors min-w-[32px]"
+                  >
+                    {vcoDisplayUnit === 'ml' ? 'mL' : 'L'}
+                  </button>
                 </div>
               </div>
               

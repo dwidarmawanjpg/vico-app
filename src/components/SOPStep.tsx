@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Timer, Edit2, Pause, RotateCcw, Play, Info, CheckCircle, Circle, ArrowRight, Target, ListOrdered, Home } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Timer, Edit2, Pause, RotateCcw, Play, Info, CheckCircle, Circle, ArrowRight, Target, ListOrdered, Home, AlertCircle } from 'lucide-react';
 import { useBatchStore } from '../stores/useBatchStore';
 import { useTimerStore } from '../stores/useTimerStore';
 import { BatchService } from '../services/BatchService';
+import { SoundService } from '../services/SoundService';
 import { SOP_STEPS, STEP_REQUIRED_CHECKLISTS, type StepNumber } from '../types/batch';
 import { STEP_INSTRUCTIONS } from '../types/stepInstructions';
 
@@ -33,6 +34,10 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
   const timerData = timers[batchId];
   const timeLeft = timerData?.timeLeft ?? 0;
   const isActive = timerData?.isActive ?? false;
+
+  // Alarm state
+  const [isAlarmActive, setIsAlarmActive] = useState(false);
+  const hasTriggeredAlarm = useRef(false); // Prevent multiple triggers
 
   // Checklist State - must be declared before any conditional returns
   const [localChecklists, setLocalChecklists] = useState<Record<string, boolean>>({});
@@ -69,6 +74,31 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
         setLocalChecklists(currentBatch.checklists as Record<string, boolean>);
     }
   }, [currentBatch]);
+
+  // Alarm trigger when timer hits 0
+  // Alarm trigger when timer hits 0
+  useEffect(() => {
+    // Only trigger once when timeLeft becomes 0 and timer was running
+    if (timeLeft === 0 && stepConfig.timer && !hasTriggeredAlarm.current && timerData) {
+      hasTriggeredAlarm.current = true;
+      setIsAlarmActive(true); 
+      // Sound & Notification handled by GlobalTimerListener
+    }
+    
+    // Reset trigger flag when timer is restarted
+    if (timeLeft > 0) {
+      hasTriggeredAlarm.current = false;
+    }
+  }, [timeLeft, stepConfig.timer, stepNumber, stepConfig.name, timerData]);
+
+  // Cleanup: Stop alarm when component unmounts (user navigates away)
+  // Cleanup: Stop alarm when component unmounts (user navigates away)
+  // REMOVED: Global alarm should persist until manually stopped
+  // useEffect(() => {
+  //   return () => {
+  //     SoundService.stopAlarmSound();
+  //   };
+  // }, []);
 
   const requiredKeys = STEP_REQUIRED_CHECKLISTS[stepNumber] || [];
   const allChecked = requiredKeys.every(key => localChecklists[key]);
@@ -300,28 +330,73 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
                 </div>
             </div>
 
-            {/* Timer Controls */}
+            {/* Timer Controls - Mutually Exclusive States */}
             <div className="flex gap-4 w-full pt-2">
-                <button 
-                    onClick={() => isActive ? pauseTimer(batchId) : resumeTimer(batchId)}
-                    className="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center gap-2 font-bold transition-all active:scale-95"
-                >
-                    {isActive ? <Pause size={20} /> : <Play size={20} />}
-                    <span>{isActive ? 'Pause' : 'Resume'}</span>
-                </button>
-                <button 
-                    onClick={() => resetTimer(batchId)}
-                    className="h-12 w-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-all active:scale-95"
-                >
-                    <RotateCcw size={20} />
-                </button>
-                <button 
-                    onClick={() => startTimer(batchId)}
-                    className={`flex-1 h-12 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center gap-2 font-bold hover:bg-primary/90 transition-all active:scale-95 ${isActive ? 'hidden' : 'flex'}`}
-                >
-                    <Play size={20} fill="currentColor" />
-                    <span>Start</span>
-                </button>
+                {(() => {
+                    const totalDuration = timerData?.totalDuration ?? stepConfig.timer ?? 0;
+                    const isFinished = timeLeft === 0;
+                    const isRunning = isActive && timeLeft > 0;
+                    const isPaused = !isActive && timeLeft > 0 && timeLeft < totalDuration;
+
+                    // CASE A: Timer Finished (timeLeft === 0)
+                    if (isFinished) {
+                        return (
+                            <button 
+                                onClick={() => resetTimer(batchId)}
+                                className="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center gap-2 font-medium transition-all active:scale-95"
+                            >
+                                <RotateCcw size={20} />
+                                <span>Ulangi Timer</span>
+                            </button>
+                        );
+                    }
+
+                    // CASE B: Timer Running
+                    if (isRunning) {
+                        return (
+                            <button 
+                                onClick={() => pauseTimer(batchId)}
+                                className="flex-1 h-12 rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 font-bold hover:bg-amber-600 transition-all active:scale-95"
+                            >
+                                <Pause size={20} />
+                                <span>Pause</span>
+                            </button>
+                        );
+                    }
+
+                    // CASE C: Timer Paused
+                    if (isPaused) {
+                        return (
+                            <>
+                                <button 
+                                    onClick={() => resumeTimer(batchId)}
+                                    className="flex-1 h-12 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center gap-2 font-bold hover:bg-primary/90 transition-all active:scale-95"
+                                >
+                                    <Play size={20} fill="currentColor" />
+                                    <span>Lanjutkan</span>
+                                </button>
+                                <button 
+                                    onClick={() => resetTimer(batchId)}
+                                    className="h-12 w-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-all active:scale-95"
+                                    title="Reset timer"
+                                >
+                                    <RotateCcw size={20} />
+                                </button>
+                            </>
+                        );
+                    }
+
+                    // CASE D: Timer Not Started (default)
+                    return (
+                        <button 
+                            onClick={() => startTimer(batchId)}
+                            className="flex-1 h-12 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center gap-2 font-bold hover:bg-primary/90 transition-all active:scale-95"
+                        >
+                            <Play size={20} fill="currentColor" />
+                            <span>Mulai Timer</span>
+                        </button>
+                    );
+                })()}
             </div>
         </div>
         )}
@@ -517,6 +592,40 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
                 Simpan
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Time's Up Alarm Modal */}
+      {isAlarmActive && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-md p-6 shadow-2xl animate-bounce-slow">
+            {/* Pulsing alarm icon */}
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-red-500/30 rounded-full animate-ping"></div>
+                <div className="relative bg-red-500 text-white rounded-full p-6">
+                  <AlertCircle size={48} />
+                </div>
+              </div>
+            </div>
+            
+            <h3 className="text-2xl font-bold text-center text-text-main dark:text-white mb-2">
+              ⏰ Waktu Habis!
+            </h3>
+            <p className="text-center text-text-sub dark:text-gray-400 mb-6">
+              Tahap <span className="font-bold text-primary">{stepNumber}: {stepConfig.name}</span> telah selesai.
+            </p>
+            
+            <button
+              onClick={() => {
+                SoundService.stopAlarmSound();
+                setIsAlarmActive(false);
+              }}
+              className="w-full h-14 rounded-xl bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 active:scale-[0.98]"
+            >
+              Matikan Alarm & Lanjut
+            </button>
           </div>
         </div>
       )}
