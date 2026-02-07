@@ -20,18 +20,52 @@ import { useBatchStore } from './stores/useBatchStore';
 import { ClipboardList } from 'lucide-react';
 import GlobalTimerListener from './components/GlobalTimerListener';
 
+import { useSettingsStore } from './stores/useSettingsStore';
+import { LocalNotifications } from '@capacitor/local-notifications';
+
 function AppContent() {
   const { isLoaded, loadProfile } = useUserStore();
   const { activeBatches, loadActiveBatches, setCurrentBatch } = useBatchStore();
+  const { notificationEnabled, setNotificationEnabled, setNotificationPermission } = useSettingsStore();
+
   const [activeTab, setActiveTab] = React.useState('home');
   const [selectedModule, setSelectedModule] = React.useState<ModuleData | null>(null);
   const [selectedBatchId, setSelectedBatchId] = React.useState<string | null>(null);
   const [manualInputData, setManualInputData] = React.useState<{ weight: number; water: number } | null>(null);
 
-  // Load user profile from localStorage on mount
+  // Load user profile and check permissions on mount
   React.useEffect(() => {
     loadProfile();
-  }, [loadProfile]);
+
+    // Startup Logic: Check Notification Permissions
+    const checkPermissions = async () => {
+        if (notificationEnabled) {
+            try {
+                // Check current status
+                const status = await LocalNotifications.checkPermissions();
+                
+                if (status.display === 'granted') {
+                    setNotificationPermission('granted');
+                } else {
+                    // If enabled in settings but not granted, REQUEST IT immediately
+                    // This fixes the "It looks ON but it's not working" issue
+                    const request = await LocalNotifications.requestPermissions();
+                    if (request.display === 'granted') {
+                        setNotificationPermission('granted');
+                    } else {
+                        // If denied, turn OFF the setting to reflect reality
+                        setNotificationEnabled(false);
+                        setNotificationPermission('denied');
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to check notifications:", e);
+            }
+        }
+    };
+    
+    checkPermissions();
+  }, [loadProfile, notificationEnabled, setNotificationEnabled, setNotificationPermission]);
 
   // Load active batches when on home screen
   React.useEffect(() => {

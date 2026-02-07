@@ -48,6 +48,22 @@ export const TimerService = {
   },
 
   /**
+   * Activate an existing timer (e.g. start after reset)
+   * Preserves totalDuration
+   */
+  async activateTimer(batchId: string): Promise<void> {
+    const timer = await db.timers.get(batchId);
+    if (!timer) return; // Should exist
+
+    await db.timers.update(batchId, {
+      startTime: Date.now(),
+      isActive: true,
+      pausedAt: null,
+      remainingWhenPaused: null,
+    });
+  },
+
+  /**
    * Pause a timer - stores the paused timestamp and remaining time
    */
   async pauseTimer(batchId: string): Promise<void> {
@@ -131,9 +147,9 @@ export const TimerService = {
    * Rehydrate all active timers from IndexedDB on app load
    * Returns timers with updated remaining times
    */
-  async rehydrate(): Promise<Map<string, { remaining: number; isActive: boolean; stepNumber: number }>> {
+  async rehydrate(): Promise<Map<string, { remaining: number; isActive: boolean; stepNumber: number; totalDuration: number }>> {
     const timers = await db.timers.toArray();
-    const result = new Map<string, { remaining: number; isActive: boolean; stepNumber: number }>();
+    const result = new Map<string, { remaining: number; isActive: boolean; stepNumber: number; totalDuration: number }>();
     
     for (const timer of timers) {
       const remaining = this.calculateRemaining(timer);
@@ -141,6 +157,7 @@ export const TimerService = {
         remaining,
         isActive: timer.isActive,
         stepNumber: timer.stepNumber,
+        totalDuration: timer.totalDuration,
       });
     }
     

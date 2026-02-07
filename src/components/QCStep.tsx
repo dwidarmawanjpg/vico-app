@@ -145,7 +145,7 @@ const QCStep: React.FC<QCStepProps> = ({ onBack, onFinish, onHome }) => {
       )}
 
       {/* Header */}
-      <div className="sticky top-0 z-20 flex items-center justify-between bg-surface-light dark:bg-surface-dark p-4 shadow-sm transition-colors duration-200">
+      <div className="sticky top-0 z-20 flex items-center justify-between bg-surface-light dark:bg-surface-dark p-4 shadow-sm transition-colors duration-200 pt-safe">
         {/* Back Button - Dynamic Logic */}
         <button 
             onClick={handleBack}

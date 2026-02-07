@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { TimerService } from '../services/TimerService';
+import { NotificationService } from '../services/NotificationService';
 import type { StepNumber } from '../types/batch';
 
 /**
@@ -71,9 +72,12 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
   },
 
   // Start/activate a timer
-  startTimer: (batchId: string) => {
+  startTimer: async (batchId: string) => { // Updated to async
     const timer = get().timers[batchId];
     if (!timer) return;
+    
+    // IMPORTANT: Persist active state to DB!
+    await TimerService.activateTimer(batchId);
     
     set((state) => ({
       timers: {
@@ -81,6 +85,10 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
         [batchId]: { ...timer, isActive: true },
       },
     }));
+
+    // Schedule notification for remaining time
+    const finishTime = Date.now() + (timer.timeLeft * 1000);
+    NotificationService.scheduleTimer(batchId, finishTime, timer.totalDuration);
   },
 
   // Pause a timer and persist to DB
@@ -96,6 +104,9 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
         [batchId]: { ...timer, isActive: false },
       },
     }));
+
+    // Cancel pending notification
+    NotificationService.cancelTimer(batchId);
   },
 
   // Resume a timer from paused state
@@ -111,30 +122,48 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
         [batchId]: { ...timer, isActive: true },
       },
     }));
+
+    // Re-schedule notification
+    const finishTime = Date.now() + (timer.timeLeft * 1000);
+    NotificationService.scheduleTimer(batchId, finishTime, timer.totalDuration);
   },
 
   // Reset timer to full duration
   resetTimer: async (batchId: string) => {
-    const timer = get().timers[batchId];
-    if (!timer) return;
+    console.log(`[TimerStore] Resetting timer for ${batchId}`);
+    try {
+        const timer = get().timers[batchId];
+        if (!timer) {
+            console.error(`[TimerStore] Timer not found for ${batchId}`);
+            return;
+        }
+        
+        await TimerService.resetTimer(batchId);
+        
+        set((state) => ({
+          timers: {
+            ...state.timers,
+            [batchId]: {
+              ...timer,
+              timeLeft: timer.totalDuration,
+              isActive: false,
+            },
+          },
+        }));
+        console.log(`[TimerStore] Timer reset state updated. New timeLeft: ${timer.totalDuration}`);
     
-    await TimerService.resetTimer(batchId);
-    
-    set((state) => ({
-      timers: {
-        ...state.timers,
-        [batchId]: {
-          ...timer,
-          timeLeft: timer.totalDuration,
-          isActive: false,
-        },
-      },
-    }));
+        // Cancel any notifications
+        await NotificationService.cancelTimer(batchId);
+    } catch (e) {
+        console.error('[TimerStore] Failed to reset timer:', e);
+        throw e; // Propagate to component
+    }
   },
 
   // Decrement timer by 1 second (called from interval)
   tick: (batchId: string) => {
     const timer = get().timers[batchId];
+    // ... existing tick logic (no change needed for notification) ...
     if (!timer || !timer.isActive || timer.timeLeft <= 0) return;
     
     const newTimeLeft = Math.max(0, timer.timeLeft - 1);
@@ -158,6 +187,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
       const { [batchId]: _, ...rest } = state.timers;
       return { timers: rest };
     });
+    NotificationService.cancelTimer(batchId);
   },
 
   // Rehydrate all timers from IndexedDB on app load
@@ -170,7 +200,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
       timers[batchId] = {
         timeLeft: data.remaining,
         isActive: data.isActive,
-        totalDuration: data.remaining,
+        totalDuration: data.totalDuration,
         stepNumber: data.stepNumber,
       };
     });

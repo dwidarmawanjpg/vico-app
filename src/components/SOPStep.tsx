@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Timer, Edit2, Pause, RotateCcw, Play, Info, CheckCircle, Circle, ArrowRight, Target, ListOrdered, Home, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Timer, Edit2, Pause, RotateCcw, Play, Info, CheckCircle, Circle, ArrowRight, Target, ListOrdered, Home } from 'lucide-react';
 import { useBatchStore } from '../stores/useBatchStore';
 import { useTimerStore } from '../stores/useTimerStore';
 import { BatchService } from '../services/BatchService';
-import { SoundService } from '../services/SoundService';
 import { SOP_STEPS, STEP_REQUIRED_CHECKLISTS, type StepNumber } from '../types/batch';
 import { STEP_INSTRUCTIONS } from '../types/stepInstructions';
 
@@ -15,7 +14,7 @@ interface SOPStepProps {
 
 const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
   const { currentBatch, refreshCurrentBatch } = useBatchStore();
-  const { timers, startTimer, pauseTimer, resumeTimer, resetTimer, initTimer, initCustomTimer, tick, rehydrateAll } = useTimerStore();
+  const { timers, startTimer, pauseTimer, resumeTimer, resetTimer, initTimer, initCustomTimer, rehydrateAll } = useTimerStore();
   
   // Toast state for minimize feedback
   const [showToast, setShowToast] = useState(false);
@@ -35,9 +34,7 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
   const timeLeft = timerData?.timeLeft ?? 0;
   const isActive = timerData?.isActive ?? false;
 
-  // Alarm state
-  const [isAlarmActive, setIsAlarmActive] = useState(false);
-  const hasTriggeredAlarm = useRef(false); // Prevent multiple triggers
+
 
   // Checklist State - must be declared before any conditional returns
   const [localChecklists, setLocalChecklists] = useState<Record<string, boolean>>({});
@@ -57,16 +54,8 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
     }
   }, [batchId, stepNumber, initTimer, rehydrateAll]);
 
-  // Timer Tick Interval
-  useEffect(() => {
-    let interval: number | undefined;
-    if (isActive && timeLeft > 0) {
-      interval = window.setInterval(() => {
-        tick(batchId);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft, batchId, tick]);
+  // Timer Tick handled by GlobalTimerListener now
+  // This ensures timer runs even if we navigate to Settings
 
   // Sync local checklist state with batch data
   useEffect(() => {
@@ -77,19 +66,7 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
 
   // Alarm trigger when timer hits 0
   // Alarm trigger when timer hits 0
-  useEffect(() => {
-    // Only trigger once when timeLeft becomes 0 and timer was running
-    if (timeLeft === 0 && stepConfig.timer && !hasTriggeredAlarm.current && timerData) {
-      hasTriggeredAlarm.current = true;
-      setIsAlarmActive(true); 
-      // Sound & Notification handled by GlobalTimerListener
-    }
-    
-    // Reset trigger flag when timer is restarted
-    if (timeLeft > 0) {
-      hasTriggeredAlarm.current = false;
-    }
-  }, [timeLeft, stepConfig.timer, stepNumber, stepConfig.name, timerData]);
+
 
   // Cleanup: Stop alarm when component unmounts (user navigates away)
   // Cleanup: Stop alarm when component unmounts (user navigates away)
@@ -175,7 +152,7 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl font-display">
       {/* Top App Bar */}
-      <div className="flex items-center bg-surface-light dark:bg-surface-dark p-4 pb-2 justify-between sticky top-0 z-10 shadow-sm dark:shadow-gray-800/30">
+      <div className="flex items-center bg-surface-light dark:bg-surface-dark p-4 pb-2 justify-between sticky top-0 z-10 shadow-sm dark:shadow-gray-800/30 pt-safe">
         {/* Back Button - Smart Logic */}
         <button 
             onClick={async () => {
@@ -342,8 +319,15 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
                     if (isFinished) {
                         return (
                             <button 
-                                onClick={() => resetTimer(batchId)}
-                                className="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center gap-2 font-medium transition-all active:scale-95"
+                                onClick={async () => {
+                                    console.log('Click: Ulangi Timer');
+                                    try {
+                                        await resetTimer(batchId);
+                                    } catch (e) {
+                                        alert('Gagal mereset timer');
+                                    }
+                                }}
+                                className="flex-1 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center gap-2 font-bold transition-all active:scale-95"
                             >
                                 <RotateCcw size={20} />
                                 <span>Ulangi Timer</span>
@@ -376,7 +360,14 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
                                     <span>Lanjutkan</span>
                                 </button>
                                 <button 
-                                    onClick={() => resetTimer(batchId)}
+                                    onClick={async () => {
+                                        console.log('Click: Reset Paused Timer');
+                                        try {
+                                            await resetTimer(batchId);
+                                        } catch (e) {
+                                            alert('Gagal mereset timer');
+                                        }
+                                    }}
                                     className="h-12 w-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-all active:scale-95"
                                     title="Reset timer"
                                 >
@@ -596,40 +587,7 @@ const SOPStep: React.FC<SOPStepProps> = ({ onBack, onNext, onHome }) => {
         </div>
       )}
 
-      {/* Time's Up Alarm Modal */}
-      {isAlarmActive && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-md p-6 shadow-2xl animate-bounce-slow">
-            {/* Pulsing alarm icon */}
-            <div className="flex justify-center mb-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-red-500/30 rounded-full animate-ping"></div>
-                <div className="relative bg-red-500 text-white rounded-full p-6">
-                  <AlertCircle size={48} />
-                </div>
-              </div>
-            </div>
-            
-            <h3 className="text-2xl font-bold text-center text-text-main dark:text-white mb-2">
-              ⏰ Waktu Habis!
-            </h3>
-            <p className="text-center text-text-sub dark:text-gray-400 mb-6">
-              Tahap <span className="font-bold text-primary">{stepNumber}: {stepConfig.name}</span> telah selesai.
-            </p>
-            
-            <button
-              onClick={() => {
-                SoundService.stopAlarmSound();
-                setIsAlarmActive(false);
-                resetTimer(batchId); // Reset global timer state to prevent re-triggering
-              }}
-              className="w-full h-14 rounded-xl bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 active:scale-[0.98]"
-            >
-              Matikan Alarm & Lanjut
-            </button>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

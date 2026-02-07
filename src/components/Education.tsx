@@ -88,7 +88,7 @@ const Education: React.FC<EducationProps> = ({ onNavigate, onModuleClick }) => {
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl font-display">
       {/* Header */}
-      <div className="flex items-center px-4 py-3 pb-2 justify-center bg-white dark:bg-surface-dark sticky top-0 z-10 shadow-sm border-b border-gray-100 dark:border-gray-800">
+      <div className="flex items-center px-4 py-3 pb-2 justify-center bg-white dark:bg-surface-dark sticky top-0 z-10 shadow-sm border-b border-gray-100 dark:border-gray-800 pt-safe">
         <h2 className="text-text-main dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center">Modul Edukasi</h2>
       </div>
 

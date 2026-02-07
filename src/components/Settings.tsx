@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-    User, Edit2, ChevronRight, Timer, Volume2, 
+    User, Edit2, ChevronRight, Volume2, 
     Trash2, Droplet, Bell, Save, X, Share2, Loader2
 } from 'lucide-react';
 import BottomNav from './BottomNav';
@@ -9,6 +9,7 @@ import { useSettingsStore } from '../stores/useSettingsStore';
 import { BatchService } from '../services/BatchService';
 import { shareBatchReport } from '../utils/reportGenerator';
 import { db } from '../db/database';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 interface SettingsProps {
     onNavigate: (tab: string) => void;
@@ -16,10 +17,14 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
   const { profile, updateProfile, resetProfile } = useUserStore();
-  const { alarmEnabled, soundEnabled, setAlarmEnabled, setSoundEnabled } = useSettingsStore();
+  const { 
+    notificationEnabled, soundEnabled, 
+    setNotificationEnabled, setSoundEnabled, 
+    setNotificationPermission 
+  } = useSettingsStore();
+
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(profile.name);
-
   
   // Export state
   const [isExporting, setIsExporting] = useState(false);
@@ -41,8 +46,6 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
       if (!result.success) {
         alert(result.message);
       }
-      // On success with download, the file is already downloaded
-      // On success with share, the native share dialog handles feedback
     } catch (error) {
       console.error('Export failed:', error);
       alert('Gagal mengekspor data');
@@ -69,7 +72,7 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl font-display text-text-main dark:text-white pb-24">
       {/* Top App Bar */}
-      <div className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800 transition-colors">
+      <div className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800 transition-colors pt-safe">
         <div className="flex items-center justify-center h-16 px-4">
             <h2 className="text-lg font-bold leading-tight tracking-[-0.015em] text-center">Setelan</h2>
         </div>
@@ -83,7 +86,7 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
                 Profil
             </h3>
             <div className="flex items-center gap-4 bg-white dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-                {/* Profile Avatar - Generic Placeholder or Custom */}
+                {/* Profile Avatar */}
                 <div className="h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center shrink-0 border-2 border-primary overflow-hidden">
                     {profile.avatarUrl ? (
                         <img 
@@ -104,12 +107,10 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
                             onChange={(e) => setEditName(e.target.value)}
                             placeholder="Nama Lengkap"
                         />
-
                     </div>
                 ) : (
                     <div className="flex flex-col flex-1 min-w-0">
                         <p className="text-base font-semibold leading-normal truncate">Nama: {profile.name}</p>
-
                     </div>
                 )}
 
@@ -158,6 +159,70 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
             </div>
         </section>
 
+        {/* Notifikasi Section (UPDATED) */}
+        <section className="flex flex-col gap-2 mt-4">
+            <h3 className="text-lg font-bold leading-tight tracking-[-0.015em] py-2 flex items-center gap-2">
+                <Bell size={20} className="text-primary" />
+                Notifikasi
+            </h3>
+            <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+                
+                {/* Suara Alarm (soundEnabled) */}
+                <div className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="text-text-main dark:text-white flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 shrink-0 size-10">
+                            <Volume2 size={20} />
+                        </div>
+                        <p className="text-base font-medium">Suara Alarm</p>
+                    </div>
+                    <button 
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${soundEnabled ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+                    >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`}></span>
+                    </button>
+                </div>
+
+                {/* Notifikasi Background (notificationEnabled) */}
+                <div className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="text-text-main dark:text-white flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 shrink-0 size-10">
+                            <Bell size={20} />
+                        </div>
+                        <p className="text-base font-medium">Notifikasi Background</p>
+                    </div>
+                    <button 
+                        onClick={async () => {
+                            if (!notificationEnabled) {
+                                // Request permission if turning ON
+                                try {
+                                    const result = await LocalNotifications.requestPermissions();
+                                    if (result.display === 'granted') {
+                                        setNotificationEnabled(true);
+                                        setNotificationPermission('granted');
+                                    } else {
+                                        alert('Izin notifikasi diperlukan untuk fitur ini.');
+                                        setNotificationEnabled(false);
+                                        setNotificationPermission('denied');
+                                    }
+                                } catch (error) {
+                                    console.error('Error requesting permission:', error);
+                                    // Fallback (e.g. on web)
+                                    setNotificationEnabled(true); 
+                                }
+                            } else {
+                                // Turn OFF
+                                setNotificationEnabled(false);
+                            }
+                        }}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${notificationEnabled ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+                    >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${notificationEnabled ? 'translate-x-5' : 'translate-x-0'}`}></span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
         {/* Data Section */}
         <section className="flex flex-col gap-2 mt-4">
             <h3 className="text-lg font-bold leading-tight tracking-[-0.015em] py-2 flex items-center gap-2">
@@ -184,50 +249,10 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
             </button>
         </section>
 
-        {/* Notifikasi Section */}
-        <section className="flex flex-col gap-2 mt-4">
-            <h3 className="text-lg font-bold leading-tight tracking-[-0.015em] py-2 flex items-center gap-2">
-                <Bell size={20} className="text-primary" />
-                Notifikasi
-            </h3>
-            <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
-                {/* Alarm Timer */}
-                <div className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="text-text-main dark:text-white flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 shrink-0 size-10">
-                            <Timer size={20} />
-                        </div>
-                        <p className="text-base font-medium">Alarm Timer</p>
-                    </div>
-                    <button 
-                        onClick={() => setAlarmEnabled(!alarmEnabled)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${alarmEnabled ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
-                    >
-                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${alarmEnabled ? 'translate-x-5' : 'translate-x-0'}`}></span>
-                    </button>
-                </div>
-                {/* Suara Notifikasi */}
-                <div className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="text-text-main dark:text-white flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 shrink-0 size-10">
-                            <Volume2 size={20} />
-                        </div>
-                        <p className="text-base font-medium">Suara Notifikasi</p>
-                    </div>
-                    <button 
-                        onClick={() => setSoundEnabled(!soundEnabled)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${soundEnabled ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
-                    >
-                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`}></span>
-                    </button>
-                </div>
-            </div>
-        </section>
-
         {/* Zona Bahaya Section */}
         <section className="flex flex-col gap-2 mt-4">
             <h3 className="text-lg font-bold leading-tight tracking-[-0.015em] py-2 flex items-center gap-2">
-                 <span className="material-symbols-outlined text-red-500 text-[20px]">warning</span>
+                <span className="material-symbols-outlined text-red-500 text-[20px]">warning</span>
                 Zona Bahaya
             </h3>
             <div 

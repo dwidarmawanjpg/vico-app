@@ -92,7 +92,7 @@ const History: React.FC<HistoryProps> = ({ onBatchClick, onNavigate }) => {
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl font-display">
       {/* Top App Bar - NO BACK ARROW */}
-      <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-colors duration-200">
+      <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-colors duration-200 pt-safe">
         <div className="flex items-center justify-center px-4 py-3">
           <h1 className="text-lg font-bold leading-tight tracking-tight text-center text-text-main dark:text-white">Riwayat Produksi</h1>
         </div>

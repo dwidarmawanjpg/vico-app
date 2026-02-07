@@ -7,7 +7,7 @@ const Header: React.FC = () => {
   const { profile } = useUserStore();
   
   return (
-    <header className="fixed top-0 w-full max-w-md left-0 right-0 mx-auto z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+    <header className="fixed top-0 w-full max-w-md left-0 right-0 mx-auto z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 pt-safe">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           
