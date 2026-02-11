@@ -285,7 +285,7 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
                 <p className="text-gray-400 dark:text-gray-500 text-xs">© 2026 VICO App. All rights reserved.</p>
             </div>
             <div className="mt-4 text-center">
-                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Dibuat dengan <span className="text-red-500">❤️</span> untuk produsen VCO Indonesia</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Dibuat oleh <span className="text-red-500">TIM Innovillage 6</span> untuk produsen VCO Indonesia</p>
             </div>
         </section>
       </div>

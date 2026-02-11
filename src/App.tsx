@@ -11,7 +11,8 @@ import SOPStep from './components/SOPStep';
 import QCStep from './components/QCStep';
 import ManualBatchForm from './components/ManualBatchForm';
 import Education from './components/Education';
-import EducationDetail, { ModuleData } from './components/EducationDetail';
+import EducationDetail from './components/EducationDetail';
+import { EducationModule } from './data/educationModules';
 import Settings from './components/Settings';
 import BottomNav from './components/BottomNav';
 import ActiveBatchCard from './components/ActiveBatchCard';
@@ -20,21 +21,79 @@ import { useBatchStore } from './stores/useBatchStore';
 import { ClipboardList } from 'lucide-react';
 import GlobalTimerListener from './components/GlobalTimerListener';
 
+import { App as CapacitorApp } from '@capacitor/app';
+import { BatchService } from './services/BatchService';
 import { useSettingsStore } from './stores/useSettingsStore';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 function AppContent() {
   const { isLoaded, loadProfile } = useUserStore();
-  const { activeBatches, loadActiveBatches, setCurrentBatch } = useBatchStore();
+  const { activeBatches, loadActiveBatches, setCurrentBatch, currentBatch } = useBatchStore();
   const { notificationEnabled, setNotificationEnabled, setNotificationPermission } = useSettingsStore();
 
   const [activeTab, setActiveTab] = React.useState('home');
-  const [selectedModule, setSelectedModule] = React.useState<ModuleData | null>(null);
+  const [selectedModule, setSelectedModule] = React.useState<EducationModule | null>(null);
   const [selectedBatchId, setSelectedBatchId] = React.useState<string | null>(null);
   const [manualInputData, setManualInputData] = React.useState<{ weight: number; water: number } | null>(null);
 
-  // Load user profile and check permissions on mount
+  // Refs for back button listener (to access fresh state)
+  const activeTabRef = React.useRef(activeTab);
+  const currentBatchRef = React.useRef(currentBatch);
+  
   React.useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  React.useEffect(() => {
+    currentBatchRef.current = currentBatch;
+  }, [currentBatch]);
+
+  // Hardware Back Button Listener
+  React.useEffect(() => {
+    const backButtonListener = CapacitorApp.addListener('backButton', async () => {
+      const tab = activeTabRef.current;
+      const batch = currentBatchRef.current;
+
+      console.log(`Back Button Pressed. Tab: ${tab}`);
+
+      if (tab === 'home') {
+        // Exit App if on Home
+        CapacitorApp.exitApp();
+      } else if (tab === 'sop-step') {
+        // Special logic for SOP Step Navigation
+        if (batch && batch.currentStep > 1) {
+          // Go back one step
+          await BatchService.setCurrentStep(batch.id, batch.currentStep - 1);
+          // Refresh batch data to update UI
+          const updatedBatch = await BatchService.getBatch(batch.id);
+          if (updatedBatch) {
+              useBatchStore.getState().setCurrentBatch(updatedBatch);
+          }
+        } else {
+          // If step 1, go back to Home (minimize)
+          setActiveTab('home');
+        }
+      } else if (tab === 'education-detail') {
+          // Go back to Education list
+          setSelectedModule(null);
+          setActiveTab('education');
+      } else if (tab === 'history-detail') {
+          // Go back to History list
+          setSelectedBatchId(null);
+          setActiveTab('history');
+      } else {
+        // Default: Go back to Home (for Settings, History, Education list, etc.)
+        setActiveTab('home');
+      }
+    });
+
+    return () => {
+      backButtonListener.then(listener => listener.remove());
+    };
+  }, []); // Run once on mount
+
+  // Load user profile and check permissions on mount
+  React.useEffect(() => { // ... existing code ...
     loadProfile();
 
     // Startup Logic: Check Notification Permissions
@@ -165,15 +224,10 @@ function AppContent() {
   }
 
   if (activeTab === 'education') {
-      return (
-        <>
-
-          <Education onNavigate={setActiveTab} onModuleClick={(module) => {
-              setSelectedModule(module as ModuleData);
-              setActiveTab('education-detail');
-          }} />
-        </>
-      );
+      return <Education onNavigate={setActiveTab} onModuleClick={(module) => {
+          setSelectedModule(module);
+          setActiveTab('education-detail');
+      }} />;
   }
 
   if (activeTab === 'education-detail' && selectedModule) {

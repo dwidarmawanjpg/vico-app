@@ -1,140 +1,155 @@
 import React from 'react';
-import { ArrowLeft, Tag, CheckCircle, XCircle } from 'lucide-react';
-
-export interface ModuleData {
-    id: number;
-    category: string;
-    title: string;
-    description: string; // Short description
-    image: string;
-    color: string;
-    // Detail specific props
-    longDescription?: string;
-    goodTraits?: string[];
-    badTraits?: string[];
-}
+import { ArrowLeft, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { EducationModule, ContentBlock } from '../data/educationModules';
 
 interface EducationDetailProps {
-    module: ModuleData;
+    module: EducationModule;
     onBack: () => void;
 }
 
 const EducationDetail: React.FC<EducationDetailProps> = ({ module, onBack }) => {
-    
-  // Default values if detail data is missing (since we are extending the previous simple model)
-  const longDesc = module.longDescription || "Memilih kelapa yang tepat adalah langkah terpenting dalam membuat minyak kelapa murni (VCO) berkualitas tinggi. Kelapa yang sudah matang sempurna memiliki kandungan minyak paling banyak dan kadar air yang pas.";
   
-  const goodList = module.goodTraits || [
-      "Berat dan berisi saat diangkat",
-      "Air berbunyi nyaring \"kopyor\" saat diguncang",
-      "Kulit luar berwarna coklat tua merata",
-      "Daging kelapa tebal dan keras"
-  ];
-
-  const badList = module.badTraits || [
-      "Kelapa muda (sabut masih hijau)",
-      "Retak atau bocor airnya",
-      "Berjamur di bagian \"mata\" kelapa"
-  ];
-
-  const getCategoryTheme = (color: string) => {
-      switch (color) {
-          case 'green': return { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-900 dark:text-green-400', icon: 'text-green-800 dark:text-green-500', border: 'border-green-200 dark:border-green-800' };
-          case 'blue': return { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-900 dark:text-blue-400', icon: 'text-blue-800 dark:text-blue-500', border: 'border-blue-200 dark:border-blue-800' };
-          case 'purple': return { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-900 dark:text-purple-400', icon: 'text-purple-800 dark:text-purple-500', border: 'border-purple-200 dark:border-purple-800' };
-          case 'orange': return { bg: 'bg-orange-50 dark:bg-orange-900/20', text: 'text-orange-900 dark:text-orange-400', icon: 'text-orange-800 dark:text-orange-500', border: 'border-orange-200 dark:border-orange-800' };
-          default: return { bg: 'bg-gray-50 dark:bg-gray-800', text: 'text-gray-900 dark:text-gray-300', icon: 'text-gray-700 dark:text-gray-500', border: 'border-gray-200 dark:border-gray-700' };
+  // Helper to render content blocks
+  const renderBlock = (block: ContentBlock, index: number) => {
+      switch (block.type) {
+          case 'paragraph':
+              return (
+                  <p key={index} className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-6 font-serif">
+                      {block.content}
+                  </p>
+              );
+          case 'heading':
+              const HeadingTag = block.level === 2 ? 'h2' : 'h3';
+              const className = block.level === 2 
+                  ? "text-2xl font-bold text-text-main dark:text-white mt-8 mb-4 tracking-tight"
+                  : "text-xl font-bold text-text-main dark:text-white mt-6 mb-3";
+              return (
+                  <HeadingTag key={index} className={className}>
+                      {block.content}
+                  </HeadingTag>
+              );
+          case 'image':
+              return (
+                  <figure key={index} className="my-8 -mx-4 sm:mx-0">
+                      <img 
+                          src={block.src} 
+                          alt={block.alt || 'Article image'}
+                          className="w-full h-auto sm:rounded-2xl"
+                          loading="lazy"
+                      />
+                      {block.caption && (
+                          <figcaption className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2 italic px-4">
+                              {block.caption}
+                          </figcaption>
+                      )}
+                  </figure>
+              );
+          case 'list':
+              return (
+                  <ul key={index} className={`pl-5 mb-6 space-y-2 ${block.style === 'number' ? 'list-decimal' : 'list-disc'} marker:text-primary`}>
+                      {block.items.map((item, i) => (
+                          <li key={i} className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed pl-2">
+                              {item}
+                          </li>
+                      ))}
+                  </ul>
+              );
+          case 'quote':
+              return (
+                  <blockquote key={index} className="border-l-4 border-primary pl-6 py-2 my-8 italic bg-gray-50 dark:bg-gray-800/50 pr-4 rounded-r-lg">
+                      <p className="text-xl text-text-main dark:text-white font-serif mb-2">"{block.content}"</p>
+                      {block.author && <cite className="text-sm text-gray-500 dark:text-gray-400 not-italic block uppercase tracking-wider font-bold">— {block.author}</cite>}
+                  </blockquote>
+              );
+          case 'callout':
+              const colors = {
+                  info: 'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-800',
+                  warning: 'bg-orange-50 text-orange-900 border-orange-200 dark:bg-orange-900/20 dark:text-orange-200 dark:border-orange-800',
+                  tip: 'bg-green-50 text-green-900 border-green-200 dark:bg-green-900/20 dark:text-green-200 dark:border-green-800'
+              };
+              const Icons = {
+                  info: Info,
+                  warning: AlertCircle,
+                  tip: CheckCircle
+              };
+              const Icon = Icons[block.variant];
+              
+              return (
+                  <div key={index} className={`flex gap-4 p-5 rounded-xl border mb-8 ${colors[block.variant]} `}>
+                      <Icon className="shrink-0 mt-0.5" size={24} />
+                      <div>
+                          {block.title && <h4 className="font-bold mb-1 text-lg">{block.title}</h4>}
+                          <p className="leading-relaxed">{block.content}</p>
+                      </div>
+                  </div>
+              );
+          default:
+              return null;
       }
   };
 
-  const theme = getCategoryTheme(module.color);
-
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl font-display text-text-main dark:text-white group/design-root">
-      {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md p-4 pb-2 justify-between border-b border-transparent dark:border-white/5">
+    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl font-display text-text-main dark:text-white">
+      {/* Article Header (Sticky) */}
+      <div className="sticky top-0 z-30 flex items-center bg-white/80 dark:bg-[#141e18]/80 backdrop-blur-md p-4 justify-between border-b border-gray-100 dark:border-white/5 pt-safe transition-all">
         <button 
             onClick={onBack}
-            className="text-text-main dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full p-2 -ml-2 transition-colors flex shrink-0 items-center justify-center"
+            className="text-text-main dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full p-2 -ml-2 transition-colors"
         >
             <ArrowLeft size={24} />
         </button>
-        <h2 className="text-text-main dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">Modul</h2>
+        {/* No Share/Bookmark icons as requested */}
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-8">
-        {/* Hero Image */}
-        <div className="@container p-4 pb-0">
-            <div 
-                className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden bg-gray-200 dark:bg-gray-800 rounded-xl min-h-[240px] shadow-sm relative group" 
-                style={{ backgroundImage: `url("${module.image}")` }}
-            >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-            </div>
+      <div className="flex-1 overflow-y-auto pb-24">
+        {/* Edge-to-Edge Hero Image */}
+        <div className="relative w-full aspect-[4/3] sm:aspect-video">
+            <img 
+                src={module.thumbnail} 
+                alt={module.title}
+                className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background-light dark:from-background-dark via-transparent to-transparent"></div>
         </div>
 
-        {/* Category Tag */}
-        <div className="flex gap-3 px-4 pt-4 flex-wrap">
-            <div className={`flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-lg border pl-2 pr-3 ${theme.bg} ${theme.border}`}>
-                <Tag size={18} className={theme.icon} />
-                <p className={`${theme.text} text-sm font-medium leading-normal`}>{module.category}</p>
-            </div>
+        {/* Article Meta & Content Wrapper */}
+        <div className="px-5 -mt-20 relative z-10">
+             {/* Category Tag */}
+             <span className="inline-block bg-primary text-white text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-wider shadow-lg shadow-primary/30">
+                 {module.category}
+             </span>
+
+             <h1 className="text-3xl sm:text-4xl font-extrabold text-text-main dark:text-white leading-tight mb-8 tracking-tight drop-shadow-sm">
+                 {module.title}
+             </h1>
+
+             {/* Author Info REMOVED as requested */}
+
+             {/* Dynamic Content Blocks */}
+             <div className="article-content">
+                 {module.content.map((block, index) => renderBlock(block, index))}
+             </div>
+
+             {/* Sources/References */}
+             {module.references && module.references.length > 0 && (
+                 <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
+                     <h4 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Referensi / Sumber</h4>
+                     <ul className="space-y-2">
+                         {module.references.map((ref, idx) => (
+                             <li key={idx} className="text-sm text-gray-600 dark:text-gray-400 leading-normal">
+                                 {ref.url ? (
+                                     <a href={ref.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors hover:underline">
+                                         {ref.title}
+                                     </a>
+                                 ) : (
+                                     <span>{ref.title}</span>
+                                 )}
+                             </li>
+                         ))}
+                     </ul>
+                 </div>
+             )}
         </div>
-
-        {/* Title */}
-        <h1 className="text-text-main dark:text-white tracking-tight text-[28px] font-bold leading-tight px-4 pt-4 pb-4">
-            {module.title}
-        </h1>
-
-        {/* Divider */}
-        <div className="px-4">
-            <div className="h-px w-full bg-gray-200 dark:bg-white/10"></div>
-        </div>
-
-        {/* Content Card */}
-        <div className="px-4 py-6">
-            <div className="bg-white dark:bg-[#152a20] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/5">
-                <p className="text-gray-700 dark:text-gray-300 text-base font-normal leading-relaxed pb-6">
-                    {longDesc}
-                </p>
-
-                {/* Good Traits */}
-                <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                        <CheckCircle className="text-primary fill-current" size={24} />
-                        <h3 className="text-text-main dark:text-white text-lg font-bold">Ciri kelapa yang baik</h3>
-                    </div>
-                    <ul className="space-y-3 pl-1">
-                        {goodList.map((item, idx) => (
-                            <li key={idx} className="flex gap-3 items-start">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0"></span>
-                                <span className="text-gray-700 dark:text-gray-300 text-base">{item}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-
-                <div className="h-px w-full bg-gray-100 dark:bg-white/5 mb-6"></div>
-
-                {/* Bad Traits */}
-                <div>
-                    <div className="flex items-center gap-2 mb-3">
-                        <XCircle className="text-red-500 fill-current" size={24} />
-                        <h3 className="text-text-main dark:text-white text-lg font-bold">Hindari</h3>
-                    </div>
-                    <ul className="space-y-3 pl-1">
-                         {badList.map((item, idx) => (
-                            <li key={idx} className="flex gap-3 items-start">
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 shrink-0"></span>
-                                <span className="text-gray-700 dark:text-gray-300 text-base">{item}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            </div>
-        </div>
-        
-        <div className="h-8"></div>
       </div>
     </div>
   );
