@@ -31,7 +31,7 @@ export const educationModules: EducationModule[] = [
     category: 'Persiapan',
     title: 'Memilih Kelapa yang Tepat',
     excerpt: 'Panduan ciri fisik kelapa tua (Grade A) agar fermentasi berhasil dan minyak keluar banyak.',
-    thumbnail: 'https://images.unsplash.com/photo-1620634262176-7967b561c21d?q=80&w=2670&auto=format&fit=crop',
+    thumbnail: '/src/assets/thumbnail/modul1.png',
     readTime: '8 min baca',
     author: 'Tim Teknis Vico',
     date: '10 Feb 2026',
@@ -154,7 +154,7 @@ export const educationModules: EducationModule[] = [
     category: 'Proses',
     title: 'Teknik Ekstraksi Santan',
     excerpt: 'Rahasia rasio 1:1 dan teknik peras cepat (5 menit) agar santan kental dan minyak melimpah.',
-    thumbnail: 'https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?q=80&w=2615&auto=format&fit=crop',
+    thumbnail: '/src/assets/thumbnail/modul3.png',
     readTime: '7 min baca',
     author: 'Tim Teknis Vico',
     date: '12 Feb 2026',
@@ -250,49 +250,13 @@ export const educationModules: EducationModule[] = [
       { title: 'ICAR-CPCRI. (2016). Virgin Coconut Oil: Hot and Fermentation Process. Central Plantation Crops Research Institute.' }
     ]
   },
-  {
-    id: 3,
-    category: 'Kualitas',
-    title: 'Standar Emas: Menguji Kejernihan VCO',
-    excerpt: 'Bagaimana membedakan VCO berkualitas tinggi dengan yang biasa? Pelajari parameter visual dan sensorik utama.',
-    thumbnail: 'https://plus.unsplash.com/premium_photo-1669286460492-491dc7be3782?q=80&w=2574&auto=format&fit=crop',
-    readTime: '3 min baca',
-    author: 'Lab Quality Control',
-    date: '15 Feb 2026',
-    content: [
-      {
-        type: 'paragraph',
-        content: "VCO yang baik itu seperti air mineral: sebening kristal, tidak berwarna, dan bebas dari partikel melayang. Jika VCO Anda masih keruh atau kekuningan, berarti proses penyaringan atau pemisahan belum sempurna."
-      },
-      {
-        type: 'heading',
-        content: 'Uji Organoleptik Sederhana',
-        level: 2
-      },
-      {
-        type: 'list',
-        style: 'bullet',
-        items: [
-          "Warna: Bening transparan (water clear). Tidak boleh ada rona kuning.",
-          "Aroma: Harum kelapa segar yang lembut. Bukan bau tengik atau bau fermentasi asam (tape).",
-          "Rasa: Tidak serik di tenggorokan, terasa ringan dan cepat lumer di mulut.",
-          "Tekstur: Encer, tidak lengket seperti minyak goreng biasa."
-        ]
-      },
-      {
-        type: 'callout',
-        variant: 'warning',
-        title: 'Waspada',
-        content: 'Jika minyak berbau tengik dalam waktu kurang dari 1 bulan, berarti kadar air masih terlalu tinggi (>0.2%). Lakukan penyaringan ulang atau panaskan sebentar dengan suhu rendah (vacuum) jika memungkinkan.'
-      }
-    ]
-  },
+
   {
     id: 4,
     category: 'Proses',
     title: 'Standar Kebersihan & Alat',
     excerpt: 'Panduan sterilisasi murah dan aturan wajib masker untuk mencegah kegagalan fermentasi.',
-    thumbnail: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=2670&auto=format&fit=crop',
+    thumbnail: '/src/assets/thumbnail/modul2.png',
     readTime: '10 min baca',
     author: 'Tim Teknis Vico',
     date: '11 Feb 2026',
@@ -454,6 +418,98 @@ export const educationModules: EducationModule[] = [
       { title: 'Adawiyah, R., dkk. (2019). Rancidity of traditional coconut oil: microbial contaminant. Jurnal Penelitian Teknologi.' },
       { title: 'Widiyanti, R. (2021). Pengaruh Residu Deterjen Terhadap Viabilitas Bakteri Asam Laktat. Jurnal Bioteknologi & Biosains Indonesia.' },
       { title: 'Ubomba-Jaswa, E., dkk. (2010). Solar Water Disinfection (SODIS). Journal of Water and Health.' }
+    ]
+  },
+  {
+    id: 5,
+    category: 'Proses',
+    title: 'Proses Fermentasi (Rahasia 24 Jam)',
+    excerpt: 'Teknik settling 2 jam, pengadukan mekanis 30 menit, dan waktu emas fermentasi agar minyak terpisah sempurna tanpa tengik.',
+    thumbnail: '/src/assets/thumbnail/modul4.png',
+    readTime: '12 min baca',
+    author: 'Tim Teknis Vico',
+    date: '13 Feb 2026',
+    content: [
+      {
+        type: 'heading',
+        content: 'Rahasia 24 Jam: Seni Fermentasi VCO',
+        level: 2
+      },
+      {
+        type: 'paragraph',
+        content: 'Fermentasi adalah "jantung" dari pembuatan VCO. Di fase inilah santan cair akan bertransformasi secara ajaib menjadi minyak murni sebening kristal. Banyak orang gagal di sini karena tidak sabar, namun sains membuktikan bahwa ketepatan waktu adalah segalanya.'
+      },
+      {
+        type: 'paragraph',
+        content: 'Berikut adalah panduan langkah demi langkah berdasarkan standar ilmiah terbaru untuk menjamin keberhasilan produksi Anda.'
+      },
+      {
+        type: 'heading',
+        content: '1. Fase Settling (Pendiaman Awal)',
+        level: 3
+      },
+      {
+        type: 'paragraph',
+        content: 'Langkah pertama setelah pemerasan bukanlah langsung fermentasi, melainkan pendiaman (settling). Tuang santan ke wadah transparan dan biarkan istirahat total selama 2 jam.'
+      },
+      {
+        type: 'callout',
+        variant: 'info',
+        title: 'Mengapa ini wajib?',
+        content: 'Berdasarkan prinsip Hukum Stokes yang dijelaskan oleh Wong (2014), pendiaman ini memberikan waktu bagi gravitasi untuk menarik air yang berat ke dasar wadah, sementara krim minyak yang ringan akan naik ke atas. Setelah 2 jam, Anda wajib memisahkan krim dari lapisan air keruh (skim) di bagian bawah. Polosakan & Alamsyah (2016) menegaskan bahwa membuang air ini akan memekatkan nutrisi pada krim, membuat bakteri bekerja jauh lebih agresif dan efisien.'
+      },
+      {
+        type: 'heading',
+        content: '2. Teknik Pengadukan (Mechanical Demulsification)',
+        level: 3
+      },
+      {
+        type: 'paragraph',
+        content: 'Setelah air dibuang, lakukan pengadukan pada krim dengan pola kiri-kanan secara konstan selama 30 menit. Ini bukan sekadar mencampur, tapi sebuah teknik yang disebut Demulsifikasi Mekanis.'
+      },
+      {
+        type: 'paragraph',
+        content: 'Menurut riset Mandei (2019), butiran minyak dalam santan dilindungi oleh lapisan protein yang kuat. Energi gesekan dari pengadukan selama 30 menit ini berfungsi untuk "melemahkan" dan merenggangkan kulit pelindung tersebut. Dengan pertahanan protein yang sudah lemah, bakteri fermentasi nantinya tidak perlu membuang banyak energi untuk menembus dinding sel, sehingga minyak bisa keluar lebih cepat.'
+      },
+      {
+        type: 'heading',
+        content: '3. Waktu Emas: Tepat 24 Jam',
+        level: 3
+      },
+      {
+        type: 'paragraph',
+        content: 'Simpan wadah di suhu ruang hangat (30-40°C) dan biarkan fermentasi bekerja selama tepat 24 jam.'
+      },
+      {
+        type: 'paragraph',
+        content: 'Ini adalah angka mati. Studi Raghavendra (2010) menunjukkan bahwa pada jam ke-24, pH santan akan turun mencapai titik ideal (Titik Isoelektrik pH 4.5), di mana protein pecah total dan melepaskan minyak murni.'
+      },
+      {
+        type: 'callout',
+        variant: 'warning',
+        title: 'Jangan Tergiur Menunggu Lebih Lama!',
+        content: 'Nuraisyah dkk. (2025) memperingatkan bahwa jika fermentasi melewati 24 jam, bakteri yang kelaparan akan mulai memproduksi enzim Lipase. Enzim ini akan memakan minyak Anda dan mengubahnya menjadi Asam Lemak Bebas (FFA), penyebab utama bau tengik dan rasa gatal di tenggorokan.'
+      },
+      {
+        type: 'heading',
+        content: '4. Pemanenan (The Art of Harvesting)',
+        level: 3
+      },
+      {
+        type: 'paragraph',
+        content: 'Saat panen, Anda akan melihat tiga lapisan jelas: Minyak (atas), Blondo (tengah), dan Air (bawah). Ambil minyak menggunakan sendok sayur (ladle) stainless secara perlahan.'
+      },
+      {
+        type: 'paragraph',
+        content: 'Berkat perbedaan Tegangan Antarmuka (Interfacial Tension), minyak dan air yang sudah terpisah tidak akan mudah bercampur kembali. Minyak akan mengapung stabil di atas blondo, memudahkan Anda mengambilnya hingga tetes terakhir tanpa takut kotor.'
+      }
+    ],
+    references: [
+      { title: 'Mandei, J. (2019). Metode Pemecahan Emulsi Krim Santan. Jurnal Riset Teknologi Industri.' },
+      { title: 'Nuraisyah, A., dkk. (2025). Lama Penyimpanan Buah Kelapa terhadap Mutu VCO. Jurnal Agroplantae.' },
+      { title: 'Polosakan, R., & Alamsyah, A. (2016). Pengaruh Metode Pengolahan Terhadap Kualitas VCO.' },
+      { title: 'Raghavendra, S.N., et al. (2010). Aqueous extraction of coconut oil. Food and Bioprocess Technology.' },
+      { title: 'Wong, P. W. (2014). Demulsification of Coconut Milk Emulsion. Universiti Malaysia Pahang.' }
     ]
   }
 ];
